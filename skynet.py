@@ -20,7 +20,6 @@ msg_type = []
 iid = ["i-9eba7394"]
 #iid = get_instance_metadata()['instance-id']
 
-
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
 	omsg = request.data
@@ -29,10 +28,11 @@ def ext_inbound():
 	# Validate sender
 	if rmsg["commits"] > 0 :
 		repo_url = rmsg["repository"]["svn_url"]
-		#branch = rmsg[]
+		branch = rmsg["repository"]["default_branch"]
+		msg = {"repo_url": repo_url, "branch": branch}
 	# Decode
 	jmsg = json.dumps(msg)		
-	#print(jmsg)
+	print(jmsg)
 	## Get in line
 	#iid = "test inline iid"
 	#msg_src = "test inline message source"
