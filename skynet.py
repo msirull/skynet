@@ -28,8 +28,8 @@ def ext_inbound():
 	rmsg = json.loads(request.data)
 	# Validate sender
 	if rmsg["commits"] > 0 :
-		msg = rmsg["repository"]["svn_url"]
-		print msg
+		repo_url = rmsg["repository"]["svn_url"]
+		#branch = rmsg[]
 	# Decode
 	jmsg = json.dumps(msg)		
 	#print(jmsg)
