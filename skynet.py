@@ -25,23 +25,24 @@ iid = ["i-9eba7394"]
 def ext_inbound():
 	omsg = request.data
 	print omsg
-	#store request
+	# Store request
 	rmsg = json.loads(request.data)
-	#validate sender
+	# Validate sender
 	if request.method == 'POST' and rmsg["Type"] == "Notification" :
 		msg = rmsg["Message"]
-	#decode
+	# Decode
 	jmsg = json.dumps(msg)		
 	print(jmsg)
-	#print request.data
-	iid = "test inline iid"
-	msg_src = "test inline message source"
-	m.message_attributes = {
-						"instance-id":{"data_type": "String", "string_value": iid},
-						"message-source":{"data_type": "String", "string_value": msg_src}}
-	m.set_body(omsg)
-	q.write(m)
-	#notify maintenance group
+	## Get in line
+	#iid = "test inline iid"
+	#msg_src = "test inline message source"
+	#m.message_attributes = {
+	#					"instance-id":{"data_type": "String", "string_value": iid},
+	#					"message-source":{"data_type": "String", "string_value": msg_src}}
+	#m.set_body(omsg)
+	#q.write(m)
+	
+	## Notify maintenance group
 	for ip in ips:
 		url = "http://%s/notify" % ip
 		def out_notify():			
@@ -58,10 +59,10 @@ def ext_inbound():
 def in_notify():
 	omsg = request.data
 	rmsg = json.loads(request.data)
-	#validate sender
+	# Validate sender
 	if request.method == 'POST' and rmsg["Type"] == "Notification" :
 		msg = rmsg["Message"]
-	#decode
+	# Get in line
 	iid = "test inline iid"
 	msg_src = "test inline message source"
 	m.message_attributes = {
@@ -74,4 +75,4 @@ def in_notify():
 	
 
 if __name__ == "__main__":
-	app.run(debug=True, port=666)
+	app.run(debug=True, port=6666, host='0.0.0.0')
