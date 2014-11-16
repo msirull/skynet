@@ -24,15 +24,15 @@ iid = ["i-9eba7394"]
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
 	omsg = request.data
-	print omsg
 	# Store request
 	rmsg = json.loads(request.data)
 	# Validate sender
-	if request.method == 'POST' and rmsg["Type"] == "Notification" :
-		msg = rmsg["Message"]
+	if rmsg["commits"] > 0 :
+		msg = rmsg["repository"]["svn_url"]
+		print msg
 	# Decode
 	jmsg = json.dumps(msg)		
-	print(jmsg)
+	#print(jmsg)
 	## Get in line
 	#iid = "test inline iid"
 	#msg_src = "test inline message source"
@@ -53,7 +53,7 @@ def ext_inbound():
 			print req
 			response = urllib2.urlopen(req)
 			print response.read()
-	return "success!"
+	return 'success!'
 
 @app.route('/notify', methods = ['POST'])
 def in_notify():
@@ -75,4 +75,4 @@ def in_notify():
 	
 
 if __name__ == "__main__":
-	app.run(debug=True, port=6666, host='0.0.0.0')
+	app.run(debug=True, port=666, host='0.0.0.0')
