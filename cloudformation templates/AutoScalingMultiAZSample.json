@@ -1,0 +1,262 @@
+//Options:
+//sub-domain, repo, branch, cloudfront, database
+
+{
+  "Template Version" : "2014-10-27",
+
+  "Description" : "AWS CloudFormation Sample Template AutoScalingMultiAZSample: Create a multi-az, load balanced and Auto Scaled sample web site running on an Apache Web Server with PHP. The application is configured to span all Availability Zones in the region and is Auto-Scaled based on the CPU utilization of the web servers. The instances are load balanced with a simple health check against the default web page. The web site is available on port 80, however, the instances can be configured to listen on any port (8888 by default). **WARNING** This template creates one or more Amazon EC2 instances and an Elastic Load Balancer. You will be billed for the AWS resources used if you create a stack from this template.",
+
+  "Parameters" : {
+    "InstanceType" : {
+      "Description" : "WebServer EC2 instance type",
+      "Type" : "String",
+      "Default" : "t2.micro",
+      "AllowedValues" : [ "t2.micro","t2.medium","m3.medium","m3.large","m3.xlarge"],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+    "WebServerPort" : {
+      "Description" : "The TCP port for the Web Server",
+      "Type" : "Number",
+      "Default" : "80"
+    },
+    "KeyName" : {
+      "Description" : "The EC2 Key Pair to allow SSH access to the instances",
+      "Type" : "String"
+    },
+    "SSHLocation" : {
+      "Description" : "The IP address range that can be used to SSH to the EC2 instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+   }
+  },
+
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "t2.micro"    : { "Arch" : "64" },
+      "t2.medium"   : { "Arch" : "64" },
+      "m3.medium"   : { "Arch" : "64" },
+      "m3.large"    : { "Arch" : "64" },
+      "m3.xlarge"   : { "Arch" : "64" }
+    },
+
+    "AWSRegionArch2AMI" : {
+      "us-east-1"      : { "64" : "ami-b66ed3de" },
+      "us-west-2"      : { "64" : "ami-b5a7ea85" }
+    }
+  },
+
+  "Resources" : {
+    "WebServerGroup" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "AvailabilityZones" : { "Fn::GetAZs" : ""},
+        "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
+        "MinSize" : "1",
+        "MaxSize" : "3",
+        "LoadBalancerNames" : [ { "Ref" : "ElasticLoadBalancer" } ]
+      }
+    },
+
+    "LaunchConfig" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties" : {
+        "KeyName" : { "Ref" : "KeyName" },
+        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
+                                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" },
+                                          "Arch" ] } ] },
+        "UserData" : { "Fn::Base64" : { "Ref" : "WebServerPort" }},
+        "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
+        "InstanceType" : { "Ref" : "InstanceType" }
+      }
+    },
+
+    "WebServerScaleUpPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "WebServerGroup" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "1"
+      }
+    },
+    "WebServerScaleDownPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "WebServerGroup" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "-1"
+      }
+    },
+
+    "CPUAlarmHigh": {
+     "Type": "AWS::CloudWatch::Alarm",
+     "Properties": {
+        "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "90",
+        "AlarmActions": [ { "Ref": "WebServerScaleUpPolicy" } ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "WebServerGroup" }
+          }
+        ],
+        "ComparisonOperator": "GreaterThanThreshold"
+      }
+    },
+    "CPUAlarmLow": {
+     "Type": "AWS::CloudWatch::Alarm",
+     "Properties": {
+        "AlarmDescription": "Scale-down if CPU < 70% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "70",
+        "AlarmActions": [ { "Ref": "WebServerScaleDownPolicy" } ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "WebServerGroup" }
+          }
+        ],
+        "ComparisonOperator": "LessThanThreshold"
+      }
+    },
+
+    "ElasticLoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties" : {
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "Listeners" : [ {
+          "LoadBalancerPort" : "80",
+          "InstancePort" : { "Ref" : "WebServerPort" },
+          "Protocol" : "HTTPS"
+        } ],
+        "HealthCheck" : {
+          "Target" : { "Fn::Join" : [ "", ["HTTP:", { "Ref" : "WebServerPort" }, "/"]]},
+          "HealthyThreshold" : "3",
+          "UnhealthyThreshold" : "5",
+          "Interval" : "30",
+          "Timeout" : "5"
+        }
+      }
+    },
+
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH access and HTTP from the load balancer only",
+        "SecurityGroupIngress" : [ {
+          "IpProtocol" : "tcp",
+          "FromPort" : "22",
+          "ToPort" : "22",
+          "CidrIp" : { "Ref" : "SSHLocation"}
+        },
+        {
+          "IpProtocol" : "tcp",
+          "FromPort" : { "Ref" : "WebServerPort" },
+          "ToPort" : { "Ref" : "WebServerPort" },
+          "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["ElasticLoadBalancer", "SourceSecurityGroup.OwnerAlias"]},
+          "SourceSecurityGroupName" : {"Fn::GetAtt" : ["ElasticLoadBalancer", "SourceSecurityGroup.GroupName"]}
+        } ]
+      }
+    },
+    "CFDistribution" : {
+            "Type" : "AWS::CloudFront::Distribution",
+            "Properties" : {
+               "DistributionConfig" : {
+                   "Origins" : [ {
+                           "Id" : "myS3Origin",
+                           "DomainName" : "mybucket.s3.amazonaws.com",
+                           "S3OriginConfig" : {
+                               "OriginAccessIdentity" : "origin-access-identity/cloudfront/E127EXAMPLE51Z"
+                           }
+                       }, 
+                       {
+                           "Id" : "myCustomOrigin",
+                           "DomainName" : "www.example.com",
+                           "CustomOriginConfig" : {
+                               "HTTPPort" : "80",
+                               "HTTPSPort" : "443",
+                               "OriginProtocolPolicy" : "https-only"
+                           }
+                       }
+                   ],
+                   "Enabled" : "true",
+                   "Comment" : "Some comment",
+                   "DefaultRootObject" : "index.html", 
+                   "Logging" : {
+                       "Bucket" : "mylogs.s3.amazonaws.com",
+                       "Prefix" : "myprefix"
+                   },            
+                   "Aliases" : [ "mysite.example.com", "yoursite.example.com" ],
+                   "DefaultCacheBehavior" : {
+                       "TargetOriginId" : "myS3Origin",
+                       "ForwardedValues" : {
+                           "QueryString" : "false"
+                        },
+                       "TrustedSigners" : [ "1234567890EX", "1234567891EX"  ],
+                       "ViewerProtocolPolicy" : "allow-all",
+                       "MinTTL" : "100"
+                   },
+                   "CacheBehaviors" : [ {
+                            "TargetOriginId" : "myS3Origin",
+                            "ForwardedValues" : {
+                                "QueryString" : "true"
+                            },
+                            "TrustedSigners" : [ "1234567890EX", "1234567891EX" ],
+                            "ViewerProtocolPolicy" : "allow-all",
+                            "MinTTL" : "50",
+                            "PathPattern" : "images1/*.jpg"
+                        }, 
+                        {
+                            "TargetOriginId" : "myCustomOrigin",
+                            "ForwardedValues" : {
+                                "QueryString" : "true"
+                            },
+                            "TrustedSigners" : [ "1234567890EX", "1234567891EX"  ],
+                            "ViewerProtocolPolicy" : "allow-all",
+                            "MinTTL" : "50",
+                            "PathPattern" : "images2/*.jpg"
+                        }
+                   ]
+                }
+            }
+        },
+        "myDNS" : {
+        "Type" : "AWS::Route53::RecordSetGroup",
+        "Properties" : {
+          "HostedZoneName" : "proovecloud.com.",
+          "Comment" : "Zone apex alias targeted to myELB LoadBalancer.",
+          "RecordSets" : [
+            {
+              "Name" : "testing.proovecloud.com.",
+              "Type" : "A",
+              "AliasTarget" : {
+                  "HostedZoneId" : { "Fn::GetAtt" : ["ElasticLoadBalancer", "CanonicalHostedZoneNameID"] },
+                  "DNSName" : { "Fn::GetAtt" : ["ElasticLoadBalancer","CanonicalHostedZoneName"] }
+              }
+            }
+          ]
+        }
+    }
+  },
+
+  "Outputs" : {
+    "URL" : {
+      "Description" : "The URL of the website",
+      "Value" :  { "Fn::Join" : [ "", [ "http://", { "Fn::GetAtt" : [ "myDNS", "Name" ]}]]}
+    }
+  }
+}

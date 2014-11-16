@@ -1,0 +1,7 @@
+"SNSUpdateTopic" : {
+    "Type" : "AWS::SNS::Topic",
+    "Properties" : {
+   "DisplayName" : { "Fn::Join" : [ "",  [ { "Ref" : "Repo" }, "-", { "Ref" : "Environment" },"-", "update" ]]},
+   "Subscription" : [{ "Endpoint" : { "Fn::Join" : [ "", [ "http://", { "Fn::Join" : [ "", [ { "Ref" : "SubDomain" }, ".", { "Ref" : "ZoneApex" } ]]}]]}, "Protocol" : "http"}],
+   "TopicName" : { "Fn::Join" : [ "",  [ { "Ref" : "Repo" }, "-", { "Ref" : "Environment" },"-", "update" ]]}
+}
