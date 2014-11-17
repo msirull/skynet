@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, json
+from flask import Flask, request, json
 import boto.sqs
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
@@ -17,7 +17,7 @@ q = sqs_conn.create_queue('rest-prod-maint')
 m = RawMessage()
 msg_src = []
 msg_type = []
-iid = ["i-9eba7394"]
+iid = ["i-9eba6394"]
 #iid = get_instance_metadata()['instance-id']
 
 @app.route('/update', methods = ['POST'])
