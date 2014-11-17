@@ -4,6 +4,7 @@ from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
 import boto.ec2
 import urllib2
+import git
 
 app = Flask(__name__)
 
@@ -18,11 +19,11 @@ m = RawMessage()
 msg_src = []
 msg_type = []
 iid = ["i-9eba6394"]
+work_dir="/etc/app/"
 #iid = get_instance_metadata()['instance-id']
 
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
-	omsg = request.data
 	# Store request
 	rmsg = json.loads(request.data)
 	# Validate sender
@@ -31,8 +32,9 @@ def ext_inbound():
 		branch = rmsg["repository"]["default_branch"]
 		msg = {"repo_url": repo_url, "branch": branch}
 	# Decode
-	jmsg = json.dumps(msg)		
-	print(jmsg)
+	jmsg = json.dumps(msg)
+	g = git.cmd.Git(work_dir)
+	g.pull()
 	## Get in line
 	#iid = "test inline iid"
 	#msg_src = "test inline message source"
@@ -47,7 +49,7 @@ def ext_inbound():
 		url = "http://%s/notify" % ip
 		def out_notify():			
 			print url
-			data = omsg
+			data = jmsg
 			headers = { 'content-type' : 'application/json' }
 			req = urllib2.Request(url, data, headers)
 			print req
