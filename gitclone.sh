@@ -3,7 +3,6 @@ iid=`curl -s http://169.254.169.254/latest/meta-data/instance-id`
 jtags=`aws ec2 describe-tags --region us-west-2 --filter "Name=resource-id,Values=$iid"`
 ltags=${jtags,,}
 tags=$(echo $ltags | jq '.tags | from_entries')
-echo $tags >> /etc/config/tags.info
 branch=`echo $tags | jq -r '.branch'`
 repo=`echo $tags | jq -r '.repo'`
 dir="/etc/app/"
