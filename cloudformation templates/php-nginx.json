@@ -1,0 +1,1831 @@
+{
+  "Parameters": {
+    "InstanceType": {
+      "Description": "WebServer EC2 instance type",
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.medium",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge"
+      ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+    "WebServerPort": {
+      "Description": "The TCP port for the Web Server",
+      "Type": "Number",
+      "Default": "80"
+    },
+    "KeyPair": {
+      "Description": "The EC2 Key Pair to allow SSH access to the instances",
+      "Type": "String"
+    },
+    "SSHLocation": {
+      "Description": "The IP address range that can be used to SSH to the EC2 instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "ZoneApex": {
+      "Description": "Root Domain Name",
+      "Type": "String"
+    },
+    "SubDomain": {
+      "Description": "SubDomain of Stack",
+      "Type": "String"
+    },
+    "PrivateRepo": {
+      "Description": "Github repository",
+      "Type": "String"
+    },
+    "PublicRepo": {
+      "Description": "Github repository",
+      "Type": "String"
+    },
+    "Branch": {
+      "Description": "Github Branch",
+      "Type": "String"
+    },
+    "Environment": {
+      "Description": "Environment",
+      "Type": "String"
+    },
+    "PublicSubnetBlocks": {
+    "Description": "Public CIDR blocks",
+    "Type": "CommaDelimitedList",
+      "Default": "10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24"
+  },
+    "PrivateSubnetBlocks": {
+    "Description": "API CIDR blocks",
+    "Type": "CommaDelimitedList",
+      "Default": "10.0.40.0/24, 10.0.41.0/24, 10.0.42.0/24"
+  },
+    "DBsubnetBlocks": {
+    "Description": "DB CIDR blocks",
+    "Type": "CommaDelimitedList",
+      "Default": "10.0.45.0/24, 10.0.46.0/24, 10.0.47.0/24"
+  }
+},
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "t2.micro"    : { "Arch" : "64" },
+      "t2.medium"   : { "Arch" : "64" },
+      "m3.medium"   : { "Arch" : "64" },
+      "m3.large"    : { "Arch" : "64" },
+      "m3.xlarge"   : { "Arch" : "64" }
+    },
+
+    "AWSRegionArch2AMI" : {
+      "us-east-1"      : { "64" : "ami-b66ed3de" },
+      "us-west-2"      : { "64" : "ami-b5a7ea85" }
+    },
+    "NatAMI" : {
+	    "us-east-1" : { "64" : "ami-184dc970"}, 
+       "us-west-2" : {"64" : "ami-290f4119"}
+  	}
+  },
+  "Resources": {
+    "elbR53Record": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "ZoneApex"
+              },
+              "."
+            ]
+          ]
+        },
+        "Comment": "Zone apex alias targeted to myELB LoadBalancer.",
+        "RecordSets": [
+          {
+            "Name": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "SubDomain"
+                  },
+                  ".",
+                  {
+                    "Ref": "ZoneApex"
+                  }
+                ]
+              ]
+            },
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": {
+                "Fn::GetAtt": [
+                  "PublicELB",
+                  "CanonicalHostedZoneNameID"
+                ]
+              },
+              "DNSName": {
+                "Fn::GetAtt": [
+                  "PublicELB",
+                  "CanonicalHostedZoneName"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "envVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "InstanceTenancy": "default",
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    },
+    "PrivateSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Fn::Select" : [ "1", {"Ref": "PrivateSubnetBlocks"} ] },
+        "AvailabilityZone" : { "Fn::Select" : [ "1", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                " ",
+                [
+                  {
+                    "Ref": "Environment"
+                  },
+                  "Subnet B"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PrivateSubnetC": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Fn::Select" : [ "2", {"Ref": "PrivateSubnetBlocks"} ] },
+        "AvailabilityZone" : { "Fn::Select" : [ "2", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                " ",
+                [
+                  {
+                    "Ref": "Environment"
+                  },
+                  "Subnet C"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PrivateSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Fn::Select" : [ "0", {"Ref": "PrivateSubnetBlocks"} ] },
+        "AvailabilityZone" : { "Fn::Select" : [ "0", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                " ",
+                [
+                  {
+                    "Ref": "Environment"
+                  },
+                  "Subnet A"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PublicSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Fn::Select" : [ "0", {"Ref": "PublicSubnetBlocks"} ] },
+        "AvailabilityZone" : { "Fn::Select" : [ "0", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
+        "VpcId": {"Ref": "envVPC"},
+        "Tags": [
+          {"Key": "Name", "Value": {"Fn::Join": [" ",[{"Ref": "Environment"}, "Public Subnet A"]]}}
+		  ]
+      }
+    },
+    "PublicSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Fn::Select" : [ "1", {"Ref": "PublicSubnetBlocks"} ] },
+        "AvailabilityZone" : { "Fn::Select" : [ "1", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
+        "VpcId": {"Ref": "envVPC"},
+        "Tags": [
+          {"Key": "Name", "Value": {"Fn::Join": [" ",[{"Ref": "Environment"}, "Public Subnet B"]]}}
+		  ]
+      }
+    },
+    "PublicSubnetC": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "CidrBlock": { "Fn::Select" : [ "2", {"Ref": "PublicSubnetBlocks"} ] },
+        "AvailabilityZone" : { "Fn::Select" : [ "2", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
+        "VpcId": {"Ref": "envVPC"},
+        "Tags": [
+          {"Key": "Name", "Value": {"Fn::Join": [" ",[{"Ref": "Environment"}, "Public Subnet C"]]}}
+		  ]
+      }
+    },
+    "defaultIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                " ",
+                [
+                  {
+                    "Ref": "Environment"
+                  },
+                  "IGW"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "dopta01bb1c9": {
+      "Type": "AWS::EC2::DHCPOptions",
+      "Properties": {
+        "DomainNameServers": [
+          "AmazonProvidedDNS"
+        ]
+      }
+    },
+    "PrivateACL": {
+      "Type": "AWS::EC2::NetworkAcl",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        }
+      }
+    },
+    "PublicACL": {
+      "Type": "AWS::EC2::NetworkAcl",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        }
+      }
+    },
+    "PrivateRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        }
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        }
+      }
+    },
+    "NatIP" : {
+   	  "Type" : "AWS::EC2::EIP",
+   	  "Properties" : {"InstanceId" : { "Ref" : "NAT4Private"}}
+    },  
+    "NAT4Private" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+	    "InstanceType" : {"Ref" : "InstanceType"},
+        "ImageId": { "Fn::FindInMap" : [ "NatAMI", { "Ref" : "AWS::Region" }, { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch"]}]},
+		"SecurityGroupIds" : [{"Ref" : "sgOpen"}],
+		"SourceDestCheck" : false,
+		"SubnetId" : {"Ref":"PublicSubnetA"},
+		"KeyName" : {"Ref" : "KeyPair"},
+		"Tags" : [{"Key" : "Name", "Value":  {"Fn::Join": ["",[{"Ref": "PrivateRepo"},"-",{"Ref": "Environment"}, "-NAT"]]}}
+		] 
+    }},
+    "PrivateELB": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Subnets": [
+          {
+            "Ref": "PrivateSubnetA"
+          },
+          {
+            "Ref": "PrivateSubnetB"
+          },
+          {
+            "Ref": "PrivateSubnetC"
+          }
+        ],
+        "CrossZone" : true,
+        "Scheme" : "internal",
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "10",
+          "Target": "HTTP:80/phptest.php",
+          "Timeout": "5",
+          "UnhealthyThreshold": "2"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "sgLocal"
+          },
+          {
+            "Ref": "sgWebFirewall"
+          },
+          {
+            "Ref": "sgUpdateMaintenance"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": "80",
+            "LoadBalancerPort": "80",
+            "Protocol": "HTTP",
+            "InstanceProtocol": "HTTP"
+          },
+          {
+            "InstancePort": "443",
+            "LoadBalancerPort": "443",
+            "Protocol": "TCP",
+            "InstanceProtocol": "SSL"
+          }
+        ]
+      }
+    },
+    "PublicELB": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "DependsOn" : "defaultIGW",
+      "Properties": {
+        "Subnets": [
+          {
+            "Ref": "PublicSubnetA"
+          },
+          {
+            "Ref": "PublicSubnetB"
+          },
+          {
+            "Ref": "PublicSubnetC"
+          }
+        ],
+        "CrossZone" : true,
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "10",
+          "Target": "TCP:80",
+          "Timeout": "5",
+          "UnhealthyThreshold": "2"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "sgWebFirewall"
+          },
+          {
+            "Ref": "sgUpdateMaintenance"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": "80",
+            "LoadBalancerPort": "80",
+            "Protocol": "HTTP",
+            "InstanceProtocol": "HTTP"
+          },
+          {
+            "InstancePort": "443",
+            "LoadBalancerPort": "443",
+            "Protocol": "TCP",
+            "InstanceProtocol": "SSL"
+          }
+        ]
+      }
+    },
+    "apiASG": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones": [{"Fn::GetAtt" : [ "PrivateSubnetA", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PrivateSubnetB", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PrivateSubnetC", "AvailabilityZone"]}],
+        "VPCZoneIdentifier": [{"Ref" : "PrivateSubnetA"}, {"Ref" : "PrivateSubnetB"}, {"Ref" : "PrivateSubnetC"}],
+        "Cooldown": "300",
+        "DesiredCapacity": "1",
+        "MaxSize": "15",
+        "MinSize": "1",
+        "HealthCheckGracePeriod": "180",
+        "HealthCheckType": "ELB",
+        "LaunchConfigurationName": {
+          "Ref": "defaultLC"
+        },
+        "LoadBalancerNames": [
+          {
+            "Ref": "PrivateELB"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "PrivateRepo"
+                  },
+                  "-",
+                  {
+                    "Ref": "Environment"
+                  }
+                ]
+              ]
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "branch",
+            "Value": {"Ref": "Branch"},
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "environment",
+            "Value": {"Ref": "Environment"},
+            "PropagateAtLaunch": true
+            },
+            {
+            "Key": "elb_url",
+            "Value": {"Fn::GetAtt": ["PrivateELB","DNSName"]},
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "maintenance-group",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "PrivateRepo"
+                  },
+                  "-",
+                  {
+                    "Ref": "Environment"
+                  }
+                ]
+              ]
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "maintenance-queue",
+            "Value": { "Fn::GetAtt" : ["maintenanceQueue", "QueueName"] },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "repo",
+            "Value": {
+              "Ref": "PrivateRepo"
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "version",
+            "Value": "1.0",
+            "PropagateAtLaunch": true
+          }
+        ]
+      }
+    },
+    "PublicASG": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones": [{"Fn::GetAtt" : [ "PublicSubnetA", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PublicSubnetB", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PublicSubnetC", "AvailabilityZone"]}],
+        "VPCZoneIdentifier": [{"Ref" : "PublicSubnetA"}, {"Ref" : "PublicSubnetB"}, {"Ref" : "PublicSubnetC"}],
+        "Cooldown": "300",
+        "DesiredCapacity": "1",
+        "MaxSize": "15",
+        "MinSize": "1",
+        "HealthCheckGracePeriod": "300",
+        "HealthCheckType": "ELB",
+        "LaunchConfigurationName": {
+          "Ref": "PublicLC"
+        },
+        "LoadBalancerNames": [
+          {
+            "Ref": "PublicELB"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "PublicRepo"
+                  },
+                  "-",
+                  {
+                    "Ref": "Environment"
+                  }
+                ]
+              ]
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "branch",
+            "Value": {
+              "Ref": "Branch"
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "Environment"
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "maintenance-group",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "PublicRepo"
+                  },
+                  "-",
+                  {
+                    "Ref": "Environment"
+                  }
+                ]
+              ]
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "maintenance-queue",
+            "Value": { "Fn::GetAtt" : ["maintenanceQueue", "QueueName"] },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "repo",
+            "Value": {
+              "Ref": "PublicRepo"
+            },
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "version",
+            "Value": "1.0",
+            "PropagateAtLaunch": true
+          },
+            {
+            "Key": "elb_url",
+            "Value": {"Fn::GetAtt": ["PublicELB","DNSName"]},
+            "PropagateAtLaunch": true
+          }
+        ]
+      }
+    },
+    "configTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "PrivateRepo"
+              },
+              "-",
+              "config"
+            ]
+          ]
+        },
+        "KeySchema": {
+          "HashKeyElement": {
+            "AttributeName": "env",
+            "AttributeType": "S"
+          },
+          "RangeKeyElement": {
+            "AttributeName": "option",
+            "AttributeType": "S"
+          }
+        },
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "1",
+          "WriteCapacityUnits": "1"
+        }
+      }
+    },
+    "s3globalconfig": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {}
+    },
+    "s3repostaging": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {}
+    },
+    "maintenanceQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties" : {
+        "VisibilityTimeout": "0",
+      "QueueName" : {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "PrivateRepo"
+                  },
+                  "-",
+                  {
+                    "Ref": "Environment"
+                  },
+                  "-",
+                  "maint"
+                ]
+              ]
+            }}
+    },
+    "defaultLC": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+      	"InstanceType" : {"Ref" : "InstanceType"},
+        "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
+                                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" },
+                                          "Arch" ] } ] },
+        "KeyName": {"Ref" : "KeyPair"},
+        "IamInstanceProfile": {
+          "Ref": "ec2InstanceProfile1"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "sgLocal"
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": 8
+            }
+          }
+        ],
+        "UserData": "I2Nsb3VkLWNvbmZpZw0KcmVwb191cGRhdGU6IHRydWUNCnJlcG9fdXBncmFkZTogYWxsDQoNCnBhY2thZ2VzOg0KIC0gbmdpbngNCiAtIGpxDQogLSBjcnlwdG8tdXRpbHMNCiAtIHBocDU1LWZwbQ0KIC0gcGhwNTUtbXlzcWxuZCANCiAtIGdpdA0KDQpydW5jbWQ6DQogLSBbIHNoLCAtYywgIm1rZGlyIC9ldGMvY29uZmlnIl0NCiAtIFsgc2gsIC1jLCAibWtkaXIgL3Zhci93d3ciXQ0KIC0gWyBzaCwgLWMsICJta2RpciAvdmFyL3d3dy9odG1sIl0NCiAtIHdnZXQgLU8gL2V0Yy9jb25maWcvY29uZmlnX2RsLnNoIGh0dHBzOi8vczMtdXMtd2VzdC0yLmFtYXpvbmF3cy5jb20vZ2xvYmFsLWNvbmZpZy9nbG9iYWwvY29uZmlnX2RsLnNoDQogLSBjaG1vZCA3NTUgL2V0Yy9jb25maWcvKi5zaA0KIC0gL2V0Yy9jb25maWcvY29uZmlnX2RsLnNoIC9ldGMvY29uZmlnDQogLSB3Z2V0IC1PIC9ldGMvbmdpbngvbmdpbnguY29uZiBodHRwczovL3MzLXVzLXdlc3QtMi5hbWF6b25hd3MuY29tL2dsb2JhbC1jb25maWcvZ2xvYmFsL25naW54LmNvbmYNCiAtIHdnZXQgLU8gL3Jvb3QvLnNzaC9jb25maWcgaHR0cHM6Ly9zMy11cy13ZXN0LTIuYW1hem9uYXdzLmNvbS9nbG9iYWwtY29uZmlnL2dsb2JhbC9zc2hjb25maWcNCiAtIFsgc2gsIC1jLCAiL2V0Yy9jb25maWcvZ2l0Y2xvbmUuc2giIF0NCiAtIG1rZGlyIC92YXIvbG9nL3NreW5ldA0KIC0gbXYgL2V0Yy9jb25maWcvc3VwZXJ2aXNvcmQuY29uZiAvZXRjLw0KIC0gY3AgL2V0Yy9jb25maWcvc2t5bmV0LnB5IC9ldGMvY29uZmlnL3NreW5ldF9tYWluLnB5DQoNCiAtIGVhc3lfaW5zdGFsbCBwaXANCiAtIGVhc3lfaW5zdGFsbCBHaXRQeXRob24NCiAtIGVhc3lfaW5zdGFsbCBmbGFzaw0KIC0gZWFzeV9pbnN0YWxsIGd1bmljb3JuDQogLSBwaXAgaW5zdGFsbCBzdXBlcnZpc29yDQogLSBncm91cCBhZGQgd3d3DQogLSBzZXJ2aWNlIG5naW54IHN0YXJ0DQogLSBjaGtjb25maWcgbmdpbnggb24NCiAtIHNlcnZpY2UgcGhwLWZwbS01LjUgc3RhcnQNCiAtIGNoa2NvbmZpZyBwaHAtZnBtLTUuNSBvbg0KIC0gWyBzaCwgLWMsICJhd3MgczMgY3AgczM6Ly9nbG9iYWwtY29uZmlnL2dsb2JhbC9zdXBlcnZpc29yZCAvZXRjL3JjLmQvaW5pdC5kLyIgXQ0KIC0gWyBzaCwgLWMsICJjaG1vZCAreCAvZXRjL3JjLmQvaW5pdC5kL3N1cGVydmlzb3JkIiBdDQogLSBjaGtjb25maWcgc3VwZXJ2aXNvcmQgb24NCiAtIHNlcnZpY2Ugc3VwZXJ2aXNvcmQgc3RhcnQNCiAtIFsgc2gsIC1jLCAidXNlcm1vZCAtYSAtRyB3d3cgZWMyLXVzZXIiIF0NCiAtIFsgc2gsIC1jLCAidXNlcm1vZCAtYSAtRyB3d3cgYXBhY2hlIiBdDQogLSBbIHNoLCAtYywgImNob3duIC1SIHJvb3Q6d3d3IC92YXIvd3d3L2h0bWwiIF0NCiAtIGNobW9kIDI3NzUgL3Zhci93d3cvaHRtbA0KIC0gWyBmaW5kLCAvdmFyL3d3dy9odG1sLCAtdHlwZSwgZCwgLWV4ZWMsIGNobW9kLCAyNzc1LCB7fSwgKyBdDQogLSBbIGZpbmQsIC92YXIvd3d3L2h0bWwsIC10eXBlLCBmLCAtZXhlYywgY2htb2QsIDA2NjQsIHt9LCArIF0NCiAtIFsgc2gsIC1jLCAnZWNobyAiPD9waHAgcGhwaW5mbygpOyA/PiIgPi92YXIvd3d3L2h0bWwvcGhwdGVzdC5waHAnIF0NCm91dHB1dCA6IHsgYWxsIDogJ3wgdGVlIC1hIC92YXIvbG9nL2Nsb3VkLWluaXQtb3V0cHV0LmxvZycgfQ=="
+      }
+    },
+    "PublicLC": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+      	"AssociatePublicIpAddress" : true,
+      	"InstanceType" : {"Ref" : "InstanceType"},
+        "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
+                                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" },
+                                          "Arch" ] } ] },
+        "KeyName": {"Ref" : "KeyPair"},
+        "IamInstanceProfile": {
+          "Ref": "ec2InstanceProfile2"
+        },
+        "SecurityGroups": [
+            {"Ref": "sgTrusted"},
+            {"Ref": "sgELB"}
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": 8
+            }
+          }
+        ],
+        "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+			"#cloud-config\n",
+			"repo_update: true\n",
+			"repo_upgrade: all\n",
+
+			"packages:\n",
+			" - nginx\n",
+			" - jq\n",
+			" - crypto-utils\n",
+			" - git\n",
+			"\n",
+			"runcmd:\n",
+			" - mkdir /etc/config\n",
+			" - mkdir /var/www\n",
+			" - mkdir /var/www/html\n",
+			" - wget -O /etc/config/config_dl.sh https://s3-us-west-2.amazonaws.com/global-config/global/config_dl.sh\n",
+			" - chmod 755 /etc/config/*.sh\n",
+			" - /etc/config/config_dl.sh /etc/config\n",
+			" - wget -O /etc/nginx/nginx.conf https://s3-us-west-2.amazonaws.com/global-config/global/nginx.conf\n",
+			" - wget -O /root/.ssh/config https://s3-us-west-2.amazonaws.com/global-config/global/sshconfig\n",
+			" - /etc/config/gitclone.sh\n",
+			" - python /etc/config/dynamo_config.py\n",
+			" - mkdir /var/log/skynet\n",
+			" - mv /etc/config/supervisord.conf /etc/\n",
+			" - cp /etc/config/skynet.py /etc/config/skynet_main.py\n",
+			"\n",
+            " - /opt/aws/bin/cfn-init -v ",
+            "--stack ", { "Ref" : "AWS::StackName" },
+            "--resource PublicLC ",
+            "--configsets default ",
+            "--region ", { "Ref" : "AWS::Region" }, "\n",
+			"\n",
+			" - easy_install pip\n",
+			" - easy_install GitPython\n",
+			" - easy_install flask\n",
+			" - easy_install gunicorn\n",
+			" - pip install supervisor\n",
+			" - group add www\n",
+			" - service nginx start\n",
+			" - chkconfig nginx on\n",
+			" - aws s3 cp s3://global-config/global/supervisord /etc/rc.d/init.d/\n",
+			" - chmod +x /etc/rc.d/init.d/supervisord\n",
+			" - chkconfig supervisord on\n",
+			" - service supervisord start\n",
+			" - usermod -a -G www ec2-user\n",
+			" - usermod -a -G www apache\n",
+			" - chown -R root:www /var/www/html\n",
+			" - chmod 2775 /var/www/html\n",
+			" - [ find, /var/www/html, -type, d, -exec, chmod, 2775, {}, + ]\n",
+			" - [ find, /var/www/html, -type, f, -exec, chmod, 0664, {}, + ]\n",
+			" - echo 'It works!' >/var/www/html/test.html\n",
+            " - /opt/aws/bin/cfn-signal -e $? ",
+            "--stack ", { "Ref" : "AWS::StackName" },
+            "--resource PublicLC ",
+            "--region ", { "Ref" : "AWS::Region" }, "\n",
+			"output : { all : '| tee -a /var/log/cloud-init-output.log' }\n"
+			]]}
+		}
+	},
+      "Metadata" : {
+	      "AWS::CloudFormation::Init" :{
+		    "configSets" : {
+			    "default" : ["configure"]
+		    },
+			"configure" : {
+				"files" : {
+					"/etc/boto.cfg" : {
+						"content" : {"Fn::Join" : ["", [
+							"[DynamoDB]\n",
+							"region = '", {"Ref" : "AWS::Region"}, "'"
+							]]
+						}
+					}
+				},
+				"commands" : {
+					
+				}
+			}
+		}
+      }
+    },
+    "sgTrusted": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Trusted Locations",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "72.194.81.45/32"
+          }
+        ]
+      }
+    },
+    "sgLocal": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "VPC Access",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "10.0.0.0/16"
+          }
+        ]
+      }
+    },
+    "sgOpen": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Wide Open",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "sgWebFirewall": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Web/Firewall Ports",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "sgELB": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Public ELB",
+        "VpcId": {
+          "Ref": "envVPC"
+		 },
+        "SecurityGroupIngress": {
+			    "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"},
+			    "FromPort": "80",
+			    "IpProtocol": "tcp",
+			    "ToPort": "80"
+        }
+		}
+	},
+    "sgUpdateMaintenance": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allow inbound maintenance notifications",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "6666",
+            "ToPort": "6666",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "666",
+            "ToPort": "666",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "scalingDecreaseGroupSize": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "PercentChangeInCapacity",
+        "Cooldown": "360",
+        "ScalingAdjustment": "-25",
+        "AutoScalingGroupName": {
+          "Ref": "apiASG"
+        }
+      }
+    },
+    "scalingIncreaseGroupSize": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AdjustmentType": "PercentChangeInCapacity",
+        "Cooldown": "180",
+        "ScalingAdjustment": "50",
+        "AutoScalingGroupName": {
+          "Ref": "apiASG"
+        }
+      }
+    },
+    "alarmHighCPUUtilization": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ActionsEnabled": "true",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "EvaluationPeriods": "3",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Period": "60",
+        "Statistic": "Maximum",
+        "Threshold": "80.0",
+        "AlarmActions": [
+          {
+            "Ref": "scalingIncreaseGroupSize"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": {"Ref" : "apiASG"}
+          }
+        ]
+      }
+    },
+    "alarmLowCPUUtilization": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "ActionsEnabled": "true",
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "EvaluationPeriods": "10",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Period": "60",
+        "Statistic": "Minimum",
+        "Threshold": "20.0",
+        "AlarmActions": [
+          {
+            "Ref": "scalingDecreaseGroupSize"
+          }
+        ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": {"Ref" : "apiASG"}
+          }
+        ]
+      }
+    },
+    "acl1": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": true,
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "PrivateACL"
+        }
+      }
+    },
+    "acl2": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "PrivateACL"
+        }
+      }
+    },
+    "PublicAcl1": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Egress": true,
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "PublicACL"
+        }
+      }
+    },
+    "PublicAcl2": {
+      "Type": "AWS::EC2::NetworkAclEntry",
+      "Properties": {
+        "CidrBlock": "0.0.0.0/0",
+        "Protocol": "-1",
+        "RuleAction": "allow",
+        "RuleNumber": "100",
+        "NetworkAclId": {
+          "Ref": "PublicACL"
+        }
+      }
+    },
+    "PrivateSubnetAclA": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "PrivateACL"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        }
+      }
+    },
+    "PrivateSubnetAclB": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "PrivateACL"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetB"
+        }
+      }
+    },
+    "PrivateSubnetAclC": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "PrivateACL"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetC"
+        }
+      }
+    },
+    "PublicSubnetAclAssociationA": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "PublicACL"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        }
+      }
+    },
+    "PublicSubnetAclAssociationB": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "PublicACL"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetB"
+        }
+      }
+    },
+    "PublicSubnetAclAssociationC": {
+      "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties": {
+        "NetworkAclId": {
+          "Ref": "PublicACL"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetC"
+        }
+      }
+    },
+    "gw1": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "defaultIGW"
+        }
+      }
+    },
+    "PrivateSubnetRoute1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        }
+      }
+    },
+    "PrivateSubnetRoute2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetB"
+        }
+      }
+    },
+    "PrivateSubnetRoute3": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PrivateSubnetC"
+        }
+      }
+    },
+    "PublicSubnetRoute1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        }
+      }
+    },
+    "PublicSubnetRoute2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetB"
+        }
+      }
+    },
+    "PublicSubnetRoute3": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetC"
+        }
+      }
+    },
+    "RouteDirectOut": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "GatewayId": {
+          "Ref": "defaultIGW"
+        }
+      },
+      "DependsOn": "gw1"
+    },
+    "Route2NAT": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "InstanceId": {
+          "Ref": "NAT4Private"
+        }
+      }
+    },
+    "dchpassoc1": {
+      "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "DhcpOptionsId": {
+          "Ref": "dopta01bb1c9"
+        }
+      }
+    },
+    "ingress1": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgTrusted"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "72.194.81.45/32"
+      }
+    },
+    "ingress2": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgLocal"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "10.0.0.0/16"
+      }
+    },
+    "ingress3": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgWebFirewall"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "80",
+        "ToPort": "80",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress4": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgWebFirewall"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "443",
+        "ToPort": "443",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress5": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgUpdateMaintenance"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "6666",
+        "ToPort": "6666",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress6": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgUpdateMaintenance"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "666",
+        "ToPort": "666",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "GlobalConfigPolicy" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+        "PolicyName": "global-config-bucket-access",
+        "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Resource": [
+                    { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/global/*"]]}
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": "global/*"
+                    }
+                  },
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "s3globalconfig"
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+        "Roles" : [{"Ref" : "ec2Role1"}, {"Ref" : "ec2Role2"}]
+      }
+    },
+    "EnvironmentConfigPolicy" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+        "PolicyName": {"Fn::Join": ["", [ {"Ref" : "Environment"}, "-config"]]},
+        "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Resource": [{"Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}, "/environments/", {"Ref" : "Environment"}, "/database/*"]]},
+                    {"Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}, "/environments/", {"Ref" : "Environment"}, "/web-server/*"]]}]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix" : { 
+                        "Fn::Join": [ "", ["environments/", {"Ref" : "Environment"}, "/database/*"]]}
+                    }
+                  },
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "s3globalconfig"
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:ListBucket"
+                  ],
+                  "Condition": {
+                    "StringLike": {
+                      "s3:prefix": 
+                      { "Fn::Join": [ "", ["environments/", {"Ref" : "Environment"}, "/web-server/*"]]}
+                    }
+                  },
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "s3globalconfig"
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+        "Roles" : [{"Ref" : "ec2Role1"}, {"Ref" : "ec2Role2"}]
+      }
+    },
+    "DynamoConfigPolicy1":    {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+          "PolicyName": "get-config-from-dynamodb",
+          "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query"
+                  ],
+                  "Condition": {
+                    "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [{"Ref" : "Environment"}]
+                    }
+                  },
+                  "Resource": [
+                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/", {"Ref": "PrivateRepo"}, "-config/"]]}
+                 ]
+                }
+              ]
+            },
+          "Roles" : [{"Ref" : "ec2Role1"}]
+      }
+    },
+    "DynamoConfigPolicy2":    {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+          "PolicyName": "get-config-from-dynamodb",
+          "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query"
+                  ],
+                  "Condition": {
+                    "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [{"Ref" : "Environment"}]
+                    }
+                  },
+                  "Resource": [
+                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/", {"Ref": "PublicRepo"}, "-config/"]]}
+                 ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query"
+                  ],
+                  "Condition": {
+                    "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [{"Ref" : "Environment"}]
+                    }
+                  },
+                  "Resource": [
+                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/endpoints"]]}
+
+                 ]
+                }
+              ]
+            },
+          "Roles" : [{"Ref" : "ec2Role2"}]
+      }
+    },
+    "IAMInfoPolicy2" :  {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+	       "PolicyName" : "iam-info",
+	        "PolicyDocument" :{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetInstanceProfile",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies"
+      ],
+      "Resource": [
+	      { "Fn::GetAtt" : [ "ec2Role2" , "Arn" ]}
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetInstanceProfile",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies"
+      ],
+      "Resource": [
+	      { "Fn::GetAtt" : [ "ec2Role2" , "Arn" ]}
+      ]
+    },
+{    
+      "Effect": "Allow",
+      "Action": [ "ec2:DescribeTags"],
+      "Resource": ["*"]
+    },
+{    
+      "Effect": "Allow",
+      "Action": [ "ec2:DescribeInstances"],
+      "Resource": ["*"]
+    }
+  ]
+},
+          "Roles" : [{"Ref" : "ec2Role2"}]
+          }
+          },
+    "IAMInfoPolicy1" :  {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+	       "PolicyName" : "iam-info",
+	        "PolicyDocument" :{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetInstanceProfile",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies"
+      ],
+      "Resource": [
+	      { "Fn::GetAtt" : [ "ec2Role1" , "Arn" ]}
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetInstanceProfile",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies"
+      ],
+      "Resource": [
+	      { "Fn::GetAtt" : [ "ec2Role1" , "Arn" ]}
+      ]
+    },
+{    
+      "Effect": "Allow",
+      "Action": [ "ec2:DescribeTags"],
+      "Resource": ["*"]
+    },
+{    
+      "Effect": "Allow",
+      "Action": [ "ec2:DescribeInstances"],
+      "Resource": ["*"]
+    }
+  ]
+},
+          "Roles" : [{"Ref" : "ec2Role1"}]
+          }
+          },
+    "LayerConfigPolicy2" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+	          "PolicyName" : "layer-config",
+	          "PolicyDocument" : {
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": [
+	       { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/layer/", {"Ref" : "PublicRepo"}, "/*"]]},
+	        { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/ssl/*"]]}
+      ]
+    },
+  {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Condition": {"StringLike": {"s3:prefix": [{ "Fn::Join": [ "", ["layer/", {"Ref" : "PublicRepo"}, "/*"]]}]}
+      },
+      "Resource": [
+        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}]]}
+      ]
+    }, 
+  
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "ssl/*"
+        }
+      },
+      "Resource": [
+        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}]]}
+      ]
+    }
+  ]
+},
+            "Roles" : [{"Ref" : "ec2Role2"}]
+        }
+      },
+    "LayerConfigPolicy1" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+	          "PolicyName" : "layer-config",
+	          "PolicyDocument" : {
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": [
+	       { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/layer/", {"Ref" : "PrivateRepo"}, "/*"]]},
+	        { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/ssl/*"]]}
+      ]
+    },
+  {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": { "Fn::Join": [ "", ["layer/", {"Ref" : "PrivateRepo"}, "/*"]]}
+        }
+      },
+      "Resource": [
+        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}]]}
+      ]
+    }, 
+  
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "ssl/*"
+        }
+      },
+      "Resource": [
+        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}]]}
+      ]
+    }
+  ]
+},
+            "Roles" : [{"Ref" : "ec2Role1"}]
+        }
+      },
+    "MaintenanceQueuePolicy1" :  {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+	          "PolicyName" : "maintenance-queue",
+	          "PolicyDocument" : {
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sqs:*"
+      ],
+      "Resource": [
+        { "Fn::GetAtt" : ["maintenanceQueue", "Arn"] }
+      ]
+    }
+  ]
+	          },
+	          "Roles" : [{"Ref" : "ec2Role1"}]
+           }
+        },
+    "S3RepoBucketPolicy1" :  { 
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {          
+	          "PolicyName" : "repo-bucket",
+	          "PolicyDocument" : {
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": {"Fn::Join": [ "", [ {"Ref" : "PrivateRepo"},"/", {"Ref" : "Branch"}]]}
+        }
+      },
+      "Resource": [
+        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3repostaging"}]]}
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:PutObject"
+      ],
+      "Resource": [
+	    {"Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3repostaging"}, "/", {"Ref" : "PrivateRepo"},"/", {"Ref" : "Branch"}, "/*"]]}
+      ]
+    }
+  ]
+},
+            "Roles" : [{"Ref" : "ec2Role1"}]
+          }
+    },
+
+    "ec2Role1": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": {
+          "Fn::Join": [
+            "",
+            [
+              "/",
+              {
+                "Ref": "PrivateRepo"
+              },
+              "/",
+              {
+                "Ref": "Environment"
+              },
+              "/"
+            ]
+          ]
+        }
+      }
+    },
+    "ec2InstanceProfile1": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": {"Fn::Join": ["",["/",{"Ref": "PrivateRepo"},"/",{"Ref": "Environment"}, "/"]]        },
+        "Roles": [
+          {
+            "Ref": "ec2Role1"
+          }
+        ]
+      }
+    },
+    "ec2Role2": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": {
+          "Fn::Join": [
+            "",
+            [
+              "/",
+              {
+                "Ref": "PublicRepo"
+              },
+              "/",
+              {
+                "Ref": "Environment"
+              },
+              "/"
+            ]
+          ]
+        }      }
+    },
+    "ec2InstanceProfile2": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": {"Fn::Join": ["",["/",{"Ref": "PublicRepo"},"/",{"Ref": "Environment"}, "/"]]        },
+        "Roles": [
+          {
+            "Ref": "ec2Role2"
+          }
+        ]
+      }
+    }
+  },
+  "Description": "PHP/Nginx Template"
+}
