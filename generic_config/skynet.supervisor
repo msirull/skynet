@@ -1,0 +1,7 @@
+[program:skynet]
+command=gunicorn --pythonpath /etc/config skynet_main:app -b 0.0.0.0:666 --reload
+user=root
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/skynet/supervisord.log

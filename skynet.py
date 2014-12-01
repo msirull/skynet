@@ -1,4 +1,10 @@
+<<<<<<< HEAD
+from flask import Flask, render_template, request, json
+from github import Github
+import boto.sqs
+=======
 from flask import Flask, request
+>>>>>>> master
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
 import boto.sqs, boto.ec2, urllib2, git, subprocess, shutil, time, json, datetime, hmac
@@ -18,6 +24,12 @@ instances = [i for r in reservations for i in r.instances]
 ips = [i.ip_address for i in instances]
 q = sqs_conn.create_queue('test-prod-maint')
 m = RawMessage()
+<<<<<<< HEAD
+msg_src = ""
+msg_type = ""
+iid = ["i-9eba7394"]
+#iid = get_instance_metadata()['instance-id']
+=======
 msg_src = []
 msg_type = []
 iid = ["i-9eba6394"]
@@ -26,11 +38,25 @@ services = ["nginx", "php-fpm-5.5"]
 webroot="/var/www/html/"
 repo_bucket="repo-staging"
 gittoken='w3rQ2Q4KK7Wm73ANqg' #I know I need to move this
+>>>>>>> master
 
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
 	# Store request
 	rmsg = json.loads(request.data)
+<<<<<<< HEAD
+	# Only move forward if there's a commit
+	if rmsg["commits"] > 0 :
+		# Construct Message
+		repo_url = rmsg["repository"]["svn_url"]
+		ref_branch = rmsg["ref"]
+		branch = ref_branch.replace('refs/heads/', '')
+		print branch
+		msg = {"repo_url": repo_url, "branch": branch}
+	# Decode
+	jmsg = json.dumps(msg)		
+	print(jmsg)
+=======
 	msg=request.data
 	headers = request.headers
 	print headers
@@ -94,6 +120,7 @@ def ext_inbound():
 		else:
 			print "There's no Github Signature"
 			return "I don't believe you"
+>>>>>>> master
 	
 	# Encode message to go out
 	jmsg = json.dumps(msg)
@@ -115,9 +142,6 @@ def ext_inbound():
 def in_notify():
 	omsg = request.data
 	rmsg = json.loads(request.data)
-	# Validate sender
-	if request.method == 'POST' and rmsg["Type"] == "Notification" :
-		msg = rmsg["Message"]
 	# Get in line
 	iid = "test inline iid"
 	msg_src = "test inline message source"
