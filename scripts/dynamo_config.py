@@ -1,5 +1,5 @@
 from boto.dynamodb2.table import Table
-import json, os
+import json, os, subprocess
 from boto.utils import get_instance_metadata
 
 tags = file.read(open("/etc/config/tags.info", "r"))
@@ -21,3 +21,4 @@ for items in stack_items:
 	file.write("proxy_redirect http://"+ locations[stack] +"/ /"+stack+"/;\n")
 	file.write("}\n")
 	file.close()
+subprocess.call('service nginx reload', shell=True)
