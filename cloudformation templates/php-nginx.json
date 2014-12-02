@@ -454,7 +454,7 @@
         "HealthCheckGracePeriod": "180",
         "HealthCheckType": "ELB",
         "LaunchConfigurationName": {
-          "Ref": "defaultLC"
+          "Ref": "PrivateLC"
         },
         "LoadBalancerNames": [
           {
@@ -688,7 +688,7 @@
               ]
             }}
     },
-    "defaultLC": {
+    "PrivateLC": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
       	"InstanceType" : {"Ref" : "InstanceType"},
@@ -712,6 +712,29 @@
             }
           }
         ],
+        "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+			"#cloud-config\n",
+			"repo_update: true\n",
+			"repo_upgrade: all\n",
+			"runcmd:\n",
+            " - /opt/aws/bin/cfn-init -v ",
+            "-s ", { "Ref" : "AWS::StackName" },
+            "--resource 'PrivateLC' ",
+            "-c 'NginxPHP' ",
+            "--region ", { "Ref" : "AWS::Region" }, "\n",
+			"\n",
+			" - usermod -a -G www ec2-user\n",
+			" - usermod -a -G www apache\n",
+			" - chown -R root:www /var/www/html\n",
+			" - chmod 2775 /var/www/html\n",
+            " - /opt/aws/bin/cfn-signal -e $? ",
+            "--stack ", { "Ref" : "AWS::StackName" },
+            " --resource PublicLC ",
+            "--region ", { "Ref" : "AWS::Region" }, "\n",
+			"output : { all : '| tee -a /var/log/cloud-init-output.log' }\n"
+			]]}
+		}
+      },
       "Metadata" : {
 	      "AWS::CloudFormation::Init" :{
 		    "configSets" : {
@@ -719,7 +742,7 @@
 		    },
 		    "InstallNginxPHP" : {
 			    "packages" : {
-					"yum" : {
+					  "yum" : {
 						"jq" : [],
 						"nginx" : [],
 						"crypto-utils" : [],
@@ -727,46 +750,43 @@
 						"php55-fpm" : [],
 						"php55-mysqlnd" : []
 					},
-					"python" : {
-						"pip" : [],
-						"GitPython" : [],
-						"flask" : [],
-						"gunicorn" : [],
-						"supervisor" : [],
-						
-					}	
-				},
-				"commands" : {
-					"1SetupConfigDatabase" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": \"", {"Ref" : "Environment"}, "\"},\"layer\": {\"S\": \"", {"Ref" : "Environment"} ,"\"},\"url\": {\"S\": \"", {"Fn::GetAtt": ["PrivateELB","DNSName"]} ,"\"}}' --region ", {"Ref" : "AWS::Region"}]]},
-					}, {
-					"2SetupDirectories" : { 
-						"command" : "mkdir -p /var/www/html" 
-						"command" : "mkdir /etc/config"
-						"command" : "mkdir /var/log/skynet"
+					  "python" : {
+  						"pip" : [],
+  						"GitPython" : [],
+  						"flask" : [],
+  						"gunicorn" : [],
+  						"supervisor" : []
+					    
+					  }
+				  },
+				  "commands" : {
+					"1SetupConfigDatabase" : {
+						"command" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": \"", {"Ref" : "Environment"}, "\"},\"layer\": {\"S\": \"", {"Ref" : "Environment"} ,"\"},\"url\": {\"S\": \"", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"\"}}' --region ", {"Ref" : "AWS::Region"}]]}
+						},  
+					  "2SetupDirectories" : { 
+						  "command" : "mkdir -p /var/www/html",
+						  "command" : "mkdir /etc/config",
+						  "command" : "mkdir /var/log/skynet"
 						}
 					},
-				"sources" : {
+				  "sources" : {
 					"/etc/skynet" : "https://github.com/msirull/skynet/archive/master.zip"
 				}
 		    },
-			"Configure" : {
-				"files" : {
-					"/etc/boto.cfg" : {
-						"content" : {"Fn::Join" : ["", [
-							"[DynamoDB]\n",
-							"region = '", {"Ref" : "AWS::Region"}, "'"
-							]]
-						}
+			  "Configure" : {
+			  	"files" : {
+				  	"/etc/boto.cfg" : {
+						  "content" : {"Fn::Join" : ["", [
+						  	"[DynamoDB]\n",
+							  "region = '", {"Ref" : "AWS::Region"}, "'"
+						  	]]}
 					},
-					"/var/www/html/phptest.php" : {
+					  "/var/www/html/phptest.php" : {
 						"content" : "<?php phpinfo(); ?>"
 					}
 				},
 				"groups" : {
-					"www" : {},
-				},
-				"commands" : {
-					
+					"www" : {}
 				},
 				"services" : {
 					"sysvinit" : {
@@ -788,29 +808,7 @@
 				}
 			}
 		}
-      },
-        "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
-			"#cloud-config\n",
-			"repo_update: true\n",
-			"repo_upgrade: all\n",
-			"runcmd:\n",
-            " - /opt/aws/bin/cfn-init -v ",
-            "--stack ", { "Ref" : "AWS::StackName" },
-            "--resource PrivateLC ",
-            "--configsets NginxPHP ",
-            "--region ", { "Ref" : "AWS::Region" }, "\n",
-			"\n",
-			" - usermod -a -G www ec2-user\n",
-			" - usermod -a -G www apache\n",
-			" - chown -R root:www /var/www/html\n",
-			" - chmod 2775 /var/www/html\n",
-            " - /opt/aws/bin/cfn-signal -e $? ",
-            "--stack ", { "Ref" : "AWS::StackName" },
-            "--resource PublicLC ",
-            "--region ", { "Ref" : "AWS::Region" }, "\n",
-			"output : { all : '| tee -a /var/log/cloud-init-output.log' }\n"
-			]]}
-		}
+  }
     },
     "PublicLC": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
@@ -842,9 +840,9 @@
 			"repo_upgrade: all\n",
 			"runcmd:\n",
             " - /opt/aws/bin/cfn-init -v ",
-            "--stack ", { "Ref" : "AWS::StackName" },
-            "--resource PublicLC ",
-            "--configsets NginxEdge ",
+            "-s ", { "Ref" : "AWS::StackName" },
+            "--resource 'PublicLC' ",
+            "-c 'NginxEdge' ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"\n",
 			" - usermod -a -G www ec2-user\n",
@@ -853,7 +851,7 @@
 			" - chmod 2775 /var/www/html\n",
             " - /opt/aws/bin/cfn-signal -e $? ",
             "--stack ", { "Ref" : "AWS::StackName" },
-            "--resource PublicLC ",
+            " --resource PublicLC ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"output : { all : '| tee -a /var/log/cloud-init-output.log' }\n"
 			]]}
@@ -862,7 +860,7 @@
       "Metadata" : {
 	      "AWS::CloudFormation::Init" :{
 		    "configSets" : {
-			    "NginxEdge" : ["InstallNginx", "ConfigureEdge"]
+			    "NginxEdge" : ["InstallNginxOnly", "ConfigureEdge"]
 		    },
 		    "InstallNginxOnly" : {
 			    "packages" : {
@@ -877,18 +875,18 @@
 						"GitPython" : [],
 						"flask" : [],
 						"gunicorn" : [],
-						"supervisor" : [],
-						
+						"supervisor" : []
 					}	
 				},
 				"commands" : {
-					"1SetupConfigDatabase" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": \"", {"Ref" : "Environment"}, "\"},\"layer\": {\"S\": \"", {"Ref" : "Environment"} ,"\"},\"url\": {\"S\": \"", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"\"}}' --region ", {"Ref" : "AWS::Region"}]]}
-				}, {
+					"1SetupConfigDatabase" : {
+						"command" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": \"", {"Ref" : "Environment"}, "\"},\"layer\": {\"S\": \"", {"Ref" : "Environment"} ,"\"},\"url\": {\"S\": \"", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"\"}}' --region ", {"Ref" : "AWS::Region"}]]}
+						}, 
 					"2SetupDirectories" : { 
 						"command" : "mkdir -p /var/www/html",
 						"command" : "mkdir /etc/config",
 						"command" : "mkdir /var/log/skynet"
-						}
+					}
 					},				
 				"sources" : {
 					"/etc/skynet" : "https://github.com/msirull/skynet/archive/master.zip"
@@ -908,12 +906,12 @@
 					}
 				},
 				"groups" : {
-					"www" : {},
+					"www" : {}
 				},
 				"commands" : {
 					"1SetUpSkynet" : {
 						"command" : "chmod 755 /etc/config/*.sh",
-						"command" : "/etc/skynet/setup.sh"
+						"command" : "/etc/skynet/skynet-master/setup.sh"
 					}
 				},
 				"services" : {
@@ -1844,7 +1842,6 @@
             "Roles" : [{"Ref" : "ec2Role1"}]
           }
     },
-
     "ec2Role1": {
       "Type": "AWS::IAM::Role",
       "Properties": {
