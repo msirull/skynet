@@ -719,7 +719,7 @@
 			"runcmd:\n",
             " - /opt/aws/bin/cfn-init -v ",
             "-s ", { "Ref" : "AWS::StackName" },
-            "--resource 'PrivateLC' ",
+            " --resource 'PrivateLC' ",
             "-c 'NginxPHP' ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"\n",
@@ -761,12 +761,7 @@
 				  },
 				  "commands" : {
 					"1SetupConfigDatabase" : {
-						"command" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": \"", {"Ref" : "Environment"}, "\"},\"layer\": {\"S\": \"", {"Ref" : "Environment"} ,"\"},\"url\": {\"S\": \"", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"\"}}' --region ", {"Ref" : "AWS::Region"}]]}
-						},  
-					  "2SetupDirectories" : { 
-						  "command" : "mkdir -p /var/www/html",
-						  "command" : "mkdir /etc/config",
-						  "command" : "mkdir /var/log/skynet"
+						"command" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
 						}
 					},
 				  "sources" : {
@@ -841,7 +836,7 @@
 			"runcmd:\n",
             " - /opt/aws/bin/cfn-init -v ",
             "-s ", { "Ref" : "AWS::StackName" },
-            "--resource 'PublicLC' ",
+            " --resource 'PublicLC' ",
             "-c 'NginxEdge' ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"\n",
@@ -878,14 +873,22 @@
 						"supervisor" : []
 					}	
 				},
+				"files" : {
+					"/temp/test.txt" : {
+						"content" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
+					}
+				},
 				"commands" : {
-					"1SetupConfigDatabase" : {
-						"command" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": \"", {"Ref" : "Environment"}, "\"},\"layer\": {\"S\": \"", {"Ref" : "Environment"} ,"\"},\"url\": {\"S\": \"", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"\"}}' --region ", {"Ref" : "AWS::Region"}]]}
-						}, 
-					"2SetupDirectories" : { 
+					"1WriteTagsToFile" :{
+						"env" : {"iid" : "`curl -s http://169.254.169.254/latest/meta-data/instance-id`"},
+						"env" : {"jtags" : "`aws ec2 describe-tags --region $region --filter 'Name=resource-id,Values=$iid'`"},
+						"env" : {"ltags" : "${jtags,,}"},
+						"command" : "echo $($ltags | jq '.tags | from_entries') >> /etc/config/tags.info "
+					}, 
+					"0SetupDirectories" : { 
 						"command" : "mkdir -p /var/www/html",
-						"command" : "mkdir /etc/config",
-						"command" : "mkdir /var/log/skynet"
+						"command" : "mkdir /var/log/skynet",
+						"command" : "mkdir /etc/config"
 					}
 					},				
 				"sources" : {
