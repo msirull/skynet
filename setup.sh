@@ -1,8 +1,7 @@
-mkdir /etc/config
 cd /etc/skynet/skynet-master
 mkdir /var/log/skynet
-find /etc/config -name "*.sh" -type f -exec chmod 775 {} \
-find /etc/skynet -name "*.sh" -type f -exec chmod 775 {} \
+find /etc/config -name "*.sh" -type f -exec chmod 775 {} \;
+find /etc/skynet -name "*.sh" -type f -exec chmod 775 {} \;
 ./scripts/config_dl.sh /etc/config
 cp ./generic_config/nginx.conf /etc/nginx/nginx.conf
 cp ./generic_config/sshconfig /root/.ssh/config
