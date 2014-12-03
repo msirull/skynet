@@ -913,7 +913,8 @@
 				},
 				"commands" : {
 					"1SetUpSkynet" : {
-						"command" : "chmod 755 /etc/config/*.sh",
+						"command" : "chmod -R 755 /etc/config/*.sh",
+						"command" : "chmod -R 755 /etc/skynet/*.sh",
 						"command" : "/etc/skynet/skynet-master/setup.sh"
 					}
 				},
