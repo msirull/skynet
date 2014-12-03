@@ -883,11 +883,12 @@
 						"env" : {"iid" : "`curl -s http://169.254.169.254/latest/meta-data/instance-id`"},
 						"env" : {"jtags" : "`aws ec2 describe-tags --region $region --filter 'Name=resource-id,Values=$iid'`"},
 						"env" : {"ltags" : "${jtags,,}"},
-						"env" : {"tags" : "$(echo $ltags | jq '.tags | from_entries')" },
+						"env" : {"tags" : "echo $ltags | jq '.tags | from_entries'" },
 						"command" : "echo $tags >> /etc/config/tags.info"
 					}, 
 					"0SetUpDirectories" : { 
-						"command" : "mkdir -p /var/www/html"
+						"command" : "mkdir -p /var/www/html",
+						"command" : "mkdir /etc/config"
 					}
 					},				
 				"sources" : {
