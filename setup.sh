@@ -1,5 +1,6 @@
 pwd=`pwd`
 mkdir /etc/config
+mkdir /var/log/skynet
 find /etc/config -name "*.sh" -type f -exec chmod 775 {} \
 find /etc/skynet -name "*.sh" -type f -exec chmod 775 {} \
 $pwd/scripts/config_dl.sh /etc/config
