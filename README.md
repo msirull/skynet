@@ -15,7 +15,7 @@ Benefits:
 - Self-maintaining clusters
 - Complete Layer isolation. No need to expose cluster to a deployment server or open vulnerable ports (22) to update servers
 - More rapid updates vs AMI rollouts and more cost effective, especially at scale (not paying for partial hours every update)
-- CodeDeploy requires every instance to compile its own code (I think) and is a polling mechanism
+- CodeDeploy requires every instance to compile its own code (I think) and uses long polling. Skynet uses push
 
 The included CloudFormation template "php-nginx" does the following:
 - Creates 2 layers: A public Reverse Proxy layer and a private "API" layer
