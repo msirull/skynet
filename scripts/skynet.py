@@ -10,6 +10,7 @@ app = Flask(__name__)
 iid = get_instance_metadata()['instance-id']
 tags = file.read(open("/etc/config/tags.info", "r"))
 ptags = json.loads(tags)
+region='us-west-2'
 region = get_instance_metadata()['placement']['availability-zone'][:-1]
 ec2_conn = boto.ec2.connect_to_region(region)
 sqs_conn = boto.sqs.connect_to_region(region)
@@ -47,9 +48,10 @@ def ext_inbound():
 		return "Config Updated!"
 	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
 		f = urllib2.urlopen(skynet_source)
-		with open("/etc/config/skynet.py", "wb") as code:
-			code.write(f.read())
-		subprocess.call('yes | cp /etc/config/skynet.py /etc/config/skynet_main.py', shell=True)
+		ff=open("/etc/config/skynet.py", "w")
+		ff.write(f.read())
+		ff.close()
+		shutil.copy('/etc/config/skynet.py', '/etc/config/skynet_main.py')
 		return "Assimilation Successful"
 	if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
 		print "OK you *say* you're from Github"
