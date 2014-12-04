@@ -28,9 +28,9 @@ The included CloudFormation template "php-nginx" does the following:
 This could be easily modified to support Node, Java, etc.
 
 Getting Started:
-1) You'll need to have at least one domain in your AWS account. Just the zone apex, nothing else.
-2) Create a CloudFormation stack using the php-nginx.json template.
-3) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root.
+1) You'll need to have at least one domain in your AWS account. Just the zone apex, nothing else.<br>
+2) Create a CloudFormation stack using the php-nginx.json template.<br>
+3) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root.<br>
 - That's it! Give it a few minutes to get everything spun up and you should be able to go to: "subdomain.zoneapex/repo/env/phptest.php"
 
 At this point, you haven't accomplished much more than a standard CF Template. However, Skynet *is* running now. So if you've put a real repo and branch in your parameters, you should be able to add your SSH key into the appropriate S3 location (see below), add the webook into Github, and be off to the races.
@@ -40,9 +40,9 @@ Hard-Coded Settings (things I've done not flexible, just FYI):
 - Skynet installs to /etc/skynet/skynet-master (based on CloudFormation template)
 
 Assumptions (things you have to do):<br>
-1) An S3 config bucket that has directories for every layer you have. So if you're using the CF template, just add folders in the S3 Bucket it creates for every layer (at least 2, one private, one public).
-  - What kind of things? Service settings, Git SSH keys, etc<br>
-2) Create a (blank) DynamoDB "endpoints" table with "env" and "layer" as the hash/key. This isn't in Cloudformation because (for now) this table is used for all environments. I suppose it doesn't have to be this way.
+1) An S3 config bucket that has directories for every layer you have. So if you're using the CF template, just add folders in the S3 Bucket it creates for every layer (at least 2, one private, one public).<br>
+  - What kind of things? Service settings, Git SSH keys, etc<p></p>
+2) Create a (blank) DynamoDB "endpoints" table with "env" and "layer" as the hash/key. This isn't in Cloudformation because (for now) this table is used for all environments. I suppose it doesn't have to be this way.<br>
 3) You're using Github, have set up your repo with a deployment key, and put that key in the appropriate S3 location (see above). If it has the correct extension (.pem), it should get moved into the right spot.
 
 Notes:
