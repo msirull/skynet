@@ -519,6 +519,13 @@
             "PropagateAtLaunch": true
           },
           {
+            "Key": "layer",
+            "Value": {
+              "Ref": "PrivateRepo"
+            },
+            "PropagateAtLaunch" : true
+            },
+          {
             "Key": "repo",
             "Value": {
               "Ref": "PrivateRepo"
@@ -610,6 +617,12 @@
           },
           {
             "Key": "repo",
+            "Value": {
+              "Ref": "PublicRepo"
+            },
+            "PropagateAtLaunch": true
+          },{
+            "Key": "layer",
             "Value": {
               "Ref": "PublicRepo"
             },
@@ -893,7 +906,7 @@
 					"/etc/boto.cfg" : {
 						"content" : {"Fn::Join" : ["", [
 							"[DynamoDB]\n",
-							"region = '", {"Ref" : "AWS::Region"}, "'"
+							"region = ", {"Ref" : "AWS::Region"}, ""
 							]]
 						}
 					},

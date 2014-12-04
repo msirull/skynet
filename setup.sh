@@ -9,4 +9,6 @@ cp ./generic_config/sshconfig /root/.ssh/config
 python ./scripts/service_registration.py
 python ./scripts/rp_config.py
 cp ./generic_config/supervisord.conf /etc/
+cp ./generic_config/supervisord /etc/rc.d/init.d
+chmod +x /etc/rc.d/init.d/supervisord
 cp ./scripts/skynet.py /etc/config/skynet_main.py

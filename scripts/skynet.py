@@ -1,5 +1,4 @@
 from flask import Flask, request
-from github import Github
 
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
@@ -11,14 +10,15 @@ app = Flask(__name__)
 iid = get_instance_metadata()['instance-id']
 tags = file.read(open("/etc/config/tags.info", "r"))
 ptags = json.loads(tags)
-ec2_conn = boto.ec2.connect_to_region('us-west-2')
-sqs_conn = boto.sqs.connect_to_region("us-west-2")
+region = get_instance_metadata()['placement']['availability-zone'][:-1]
+ec2_conn = boto.ec2.connect_to_region(region)
+sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
 
 reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : ptags["maintenance-group"]})
 instances = [i for r in reservations for i in r.instances]
 ips = [i.ip_address for i in instances]
-q = sqs_conn.create_queue('test-prod-maint')
+q = sqs_conn.get_queue(ptags['maintenance-group']+'-maint')
 m = RawMessage()
 msg_src = ""
 msg_type = ""
