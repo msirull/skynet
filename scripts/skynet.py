@@ -33,17 +33,10 @@ def ext_inbound():
 	# Store request
 	rmsg = json.loads(request.data)
 	# Only move forward if there's a commit
-	if rmsg["commits"] > 0 :
-		# Construct Message
-		repo_url = rmsg["repository"]["svn_url"]
-		ref_branch = rmsg["ref"]
-		branch = ref_branch.replace('refs/heads/', '')
-		print branch
-		msg = {"repo_url": repo_url, "branch": branch}
+	msg=request.data
 	# Decode
 	jmsg = json.dumps(msg)		
 	print(jmsg)
-	msg=request.data
 	headers = request.headers
 	print headers
 	# Validate sender
@@ -105,7 +98,10 @@ def ext_inbound():
 				return "You don't know me"
 		else:
 			print "There's no Github Signature"
-			return "I don't believe you"	
+			return "I don't believe you"
+	else:
+		print "Not a recognized notification"
+		return "I don't know what's going on here"
 	# Encode message to go out
 	jmsg = json.dumps(msg)
 	# Notify maintenance group
@@ -137,4 +133,4 @@ def in_notify():
 	return "Success iid"	
 
 if __name__ == "__main__":
-	app.run(debug=True)
+	app.run()
