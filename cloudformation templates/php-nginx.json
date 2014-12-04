@@ -20,7 +20,8 @@
     },
     "KeyPair": {
       "Description": "The EC2 Key Pair to allow SSH access to the instances",
-      "Type": "String"
+      "Type": "String",
+      "Default" : "None"
     },
     "SSHLocation": {
       "Description": "The IP address range that can be used to SSH to the EC2 instances",
@@ -89,6 +90,9 @@
        "us-west-2" : {"64" : "ami-290f4119"}
   	}
   },
+  "Conditions" : {
+	"NoKeyPair" : {"Fn::Equals" : [{"Ref" : "KeyPair"},"None"]}  
+	},
   "Resources": {
     "elbR53Record": {
       "Type": "AWS::Route53::RecordSetGroup",
@@ -341,7 +345,13 @@
 		"SecurityGroupIds" : [{"Ref" : "sgOpen"}],
 		"SourceDestCheck" : false,
 		"SubnetId" : {"Ref":"PublicSubnetA"},
-		"KeyName" : {"Ref" : "KeyPair"},
+		"KeyName" : {
+      "Fn::If" : [
+      	"NoKeyPair",
+        {"Ref" : "AWS::NoValue"},
+        {"Ref" : "KeyPair"}
+      ]
+    },
 		"Tags" : [{"Key" : "Name", "Value":  {"Fn::Join": ["",[{"Ref": "PrivateRepo"},"-",{"Ref": "Environment"}, "-NAT"]]}}
 		] 
     }},
@@ -391,6 +401,12 @@
             "LoadBalancerPort": "443",
             "Protocol": "TCP",
             "InstanceProtocol": "SSL"
+          },
+          {
+            "InstancePort": "6666",
+            "LoadBalancerPort": "6666",
+            "Protocol": "HTTP",
+            "InstanceProtocol": "HTTP"
           }
         ]
       }
@@ -438,6 +454,12 @@
             "LoadBalancerPort": "443",
             "Protocol": "TCP",
             "InstanceProtocol": "SSL"
+          },
+          {
+            "InstancePort": "6666",
+            "LoadBalancerPort": "6666",
+            "Protocol": "HTTP",
+            "InstanceProtocol": "HTTP"
           }
         ]
       }
@@ -447,7 +469,7 @@
       "CreationPolicy": {
 	  	"ResourceSignal": {
 	  	"Count": "1",
-	  	"Timeout": "PT5M"
+	  	"Timeout": "PT10M"
     	}
   	  },
       "Properties": {
@@ -552,7 +574,7 @@
 	  "CreationPolicy": {
 	  	"ResourceSignal": {
 	  	"Count": "1",
-	  	"Timeout": "PT8M"
+	  	"Timeout": "PT10M"
     	}
   	  },
   	  "UpdatePolicy" : {
@@ -671,7 +693,7 @@
         "TableName": {
           "Fn::Join": [
             "",
-            [
+            [ {"Ref" : "AWS::StackName"},"-",
               {
                 "Ref": "PrivateRepo"
               },
@@ -702,7 +724,7 @@
         "TableName": {
           "Fn::Join": [
             "",
-            [
+            [ {"Ref" : "AWS::StackName"},"-",
               {
                 "Ref": "PublicRepo"
               },
@@ -763,7 +785,12 @@
         "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
                                           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" },
                                           "Arch" ] } ] },
-        "KeyName": {"Ref" : "KeyPair"},
+        "KeyName": {
+      "Fn::If" : ["NoKeyPair",
+        {"Ref" : "AWS::NoValue"},
+        {"Ref" : "KeyPair"}
+      ]
+    },
         "IamInstanceProfile": {
           "Ref": "ec2InstanceProfile1"
         },
@@ -917,13 +944,20 @@
         "ImageId": { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
                                           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" },
                                           "Arch" ] } ] },
-        "KeyName": {"Ref" : "KeyPair"},
+        "KeyName": {
+      "Fn::If" : [
+        "NoKeyPair",
+        {"Ref" : "AWS::NoValue"},
+        {"Ref" : "KeyPair"}
+      ]
+    },
         "IamInstanceProfile": {
           "Ref": "ec2InstanceProfile2"
         },
         "SecurityGroups": [
             {"Ref": "sgTrusted"},
-            {"Ref": "sgELB"}
+            {"Ref": "sgELB"},
+            {"Ref": "sgUpdateMaintenance"}
         ],
         "BlockDeviceMappings": [
           {
@@ -1146,13 +1180,25 @@
             "IpProtocol": "tcp",
             "FromPort": "6666",
             "ToPort": "6666",
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": "10.0.0.0/16"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "666",
             "ToPort": "666",
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": "10.0.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "6666",
+            "ToPort": "6666",
+            "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"}
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "666",
+            "ToPort": "666",
+            "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"}
           }
         ]
       }
