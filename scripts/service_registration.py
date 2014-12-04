@@ -11,4 +11,4 @@ table_obj.put_item(data={
 	'env': ptags['environment'],
 	'layer': ptags['layer'],
 	'url': ptags['elb_url']
-})
+}, overwrite=True)
