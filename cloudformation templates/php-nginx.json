@@ -641,7 +641,7 @@
         ]
       }
     },
-    "configTable": {
+    "configTable1": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
         "TableName": {
@@ -650,6 +650,37 @@
             [
               {
                 "Ref": "PrivateRepo"
+              },
+              "-",
+              "config"
+            ]
+          ]
+        },
+        "KeySchema": {
+          "HashKeyElement": {
+            "AttributeName": "env",
+            "AttributeType": "S"
+          },
+          "RangeKeyElement": {
+            "AttributeName": "option",
+            "AttributeType": "S"
+          }
+        },
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "1",
+          "WriteCapacityUnits": "1"
+        }
+      }
+    },
+    "configTable2": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "PublicRepo"
               },
               "-",
               "config"
@@ -1603,6 +1634,32 @@
             },
           "Roles" : [{"Ref" : "ec2Role2"}]
       }
+      },
+    "ServiceRegistration": {
+		  "Type" : "AWS::IAM::Policy",
+		  "Properties" : {
+			  "PolicyName": "service-registration",
+			  "PolicyDocument": {
+				"Statement": [
+				    {
+				      "Effect": "Allow",
+				      "Action": [
+				        "dynamodb:PutItem"
+				      ],
+				      "Condition": {
+				        "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [{"Ref" : "Environment"}]
+				        }
+				      },
+				      "Resource": [
+					  	{ "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/endpoints"]]}
+				      ]
+				    }
+				  ]
+
+			},
+        "Roles" : [{"Ref" : "ec2Role1"}, {"Ref" : "ec2Role2"}]
+		  }
     },
     "IAMInfoPolicy2" :  {
       "Type" : "AWS::IAM::Policy",
