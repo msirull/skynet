@@ -444,6 +444,12 @@
     },
     "apiASG": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "CreationPolicy": {
+	  	"ResourceSignal": {
+	  	"Count": "1",
+	  	"Timeout": "PT5M"
+    	}
+  	  },
       "Properties": {
         "AvailabilityZones": [{"Fn::GetAtt" : [ "PrivateSubnetA", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PrivateSubnetB", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PrivateSubnetC", "AvailabilityZone"]}],
         "VPCZoneIdentifier": [{"Ref" : "PrivateSubnetA"}, {"Ref" : "PrivateSubnetB"}, {"Ref" : "PrivateSubnetC"}],
@@ -542,6 +548,24 @@
     },
     "PublicASG": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "DependsOn" : "apiASG",
+	  "CreationPolicy": {
+	  	"ResourceSignal": {
+	  	"Count": "1",
+	  	"Timeout": "PT8M"
+    	}
+  	  },
+  	  "UpdatePolicy" : {
+      	"AutoScalingScheduledAction" : {
+        	 "IgnoreUnmodifiedGroupSizeProperties" : "true"
+      	},
+	  	"AutoScalingRollingUpdate" : {
+        	 "MinInstancesInService" : "1",
+			 "MaxBatchSize" : "1",
+			 "WaitOnResourceSignals" : "true",
+			 "PauseTime" : "PT5M"
+      	}
+   	  },
       "Properties": {
         "AvailabilityZones": [{"Fn::GetAtt" : [ "PublicSubnetA", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PublicSubnetB", "AvailabilityZone"]},{"Fn::GetAtt" : [ "PublicSubnetC", "AvailabilityZone"]}],
         "VPCZoneIdentifier": [{"Ref" : "PublicSubnetA"}, {"Ref" : "PublicSubnetB"}, {"Ref" : "PublicSubnetC"}],
@@ -773,7 +797,7 @@
 			" - chmod 2775 /var/www/html\n",
             " - /opt/aws/bin/cfn-signal -e $? ",
             "--stack ", { "Ref" : "AWS::StackName" },
-            " --resource PrivateLC ",
+            " --resource apiASG ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"output : { all : '| tee -a /var/log/cloud-init-output.log' }\n"
 			]]}
@@ -926,7 +950,7 @@
 			" - chmod 2775 /var/www/html\n",
             " - /opt/aws/bin/cfn-signal -e $? ",
             "--stack ", { "Ref" : "AWS::StackName" },
-            " --resource PublicLC ",
+            " --resource PublicASG ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"output : { all : '| tee -a /var/log/cloud-init-output.log' }\n"
 			]]}
