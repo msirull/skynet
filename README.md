@@ -9,6 +9,14 @@ Basic Concepts:
   - The rest of the instances "take a ticket" by posting to a maintenance queue and update when their "number comes up"
   - Deployment stops when an instance fails to update
 
+The included CloudFormation template "php-nginx" does the following:
+- Creates 2 layers: A public Reverse Proxy layer and a private "API" layer
+- The Private layer is fully ready to run PHP 5.5 compatible code with Nginx and PHP-FPM (see assumptions below)
+- Creates a DNS record pointing to the RP layer
+- Layers register with DynamoDB (eventually will be distributed)
+- The RP layer will automatically load the private endpoints (from a DynamoDB endpoints table, see assumptions below)
+- Creates S3 config/repo buckets
+
 Hard-Coded Settings (things I've done not flexible, just FYI):
 - Local config files go in /etc/config
 - Skynet installs to /etc/skynet/skynet-master (based on CloudFormation template)
