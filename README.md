@@ -48,4 +48,4 @@ Assumptions (things you have to do):<br>
 Notes:
 - There's a similar structure as the S3 config folder structure in DynamoDB tables for configuration info. This is the preferred location over S3 json files. You'll have better control over the config information your developers will have access to, and it will be easier for them to make updates.
 - The Github SSH cloning is an unfortunate hack. The preferred method will be AWS CodeCommit when it is released (if for no other reason than because of IAM roles)
-- All CloudFormation templates are built around a public Edge/Firewall/Reverse Proxy ASG connected to your App's private ASG, because...that's the way it's supposed to work. If you don't want to do any additional work around that, simply use the provided Nginx configs that do basic proxying.
+- The CloudFormation templates are built around a public Edge/Firewall/Reverse Proxy ASG connected to your App's private ASG, because...that's the way it's supposed to work. If you don't want to do any additional work around that, the CloudFormation template provides Nginx configs that do basic proxying.
