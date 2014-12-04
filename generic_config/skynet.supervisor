@@ -1,5 +1,5 @@
 [program:skynet]
-command=gunicorn --pythonpath /etc/config skynet_main:app -b 0.0.0.0:6=1666 --reload
+command=gunicorn --pythonpath /etc/config skynet_main:app -b 0.0.0.0:1666 --reload
 user=root
 autostart=true
 autorestart=true
