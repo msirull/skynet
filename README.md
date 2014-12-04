@@ -27,7 +27,7 @@ The included CloudFormation template "php-nginx" does the following:
 
 This could be easily modified to support Node, Java, etc.
 
-Getting Started:
+Getting Started:<br>
 1) You'll need to have at least one domain in your AWS account. Just the zone apex, nothing else.<br>
 2) Create a CloudFormation stack using the php-nginx.json template.<br>
 3) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root.<br>
