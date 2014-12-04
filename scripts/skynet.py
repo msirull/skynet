@@ -15,6 +15,7 @@ ec2_conn = boto.ec2.connect_to_region(region)
 sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
 
+skynet_source="https://raw.githubusercontent.com/msirull/skynet/master/scripts/skynet.py"
 reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : ptags["maintenance-group"]})
 instances = [i for r in reservations for i in r.instances]
 ips = [i.ip_address for i in instances]
@@ -45,6 +46,9 @@ def ext_inbound():
 		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
 		return "Config Updated!"
 	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
+		f = urllib2.urlopen(skynet_source)
+		with open("/etc/config/skynet.py", "wb") as code:
+			code.write(f.read())
 		subprocess.call('yes | cp /etc/config/skynet.py /etc/config/skynet_main.py', shell=True)
 		return "Assimilation Successful"
 	if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
