@@ -7,7 +7,6 @@ cp ./generic_config/nginx.conf /etc/nginx/nginx.conf
 cp ./generic_config/sshconfig /root/.ssh/config
 ./scripts/gitclone.sh
 python ./scripts/service_registration.py
-python ./scripts/rp_config.py
 cp ./generic_config/supervisord.conf /etc/
 cp ./generic_config/supervisord /etc/rc.d/init.d
 chmod +x /etc/rc.d/init.d/supervisord

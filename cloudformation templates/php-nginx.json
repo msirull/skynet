@@ -803,10 +803,16 @@
 					    
 					  }
 				  },
-				  "commands" : {
-					"1SetupConfigDatabase" : {
-						"command" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
-						}
+				"files" : {
+					"/temp/test.txt" : {
+						"content" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
+					}
+				},
+				"commands" : { 
+					"0SetUpDirectories" : { 
+						"command" : "mkdir -p /var/www/html",
+						"command" : "mkdir /etc/config"
+					}
 					},
 				  "sources" : {
 					"/etc/skynet" : "https://github.com/msirull/skynet/archive/master.zip"
@@ -827,6 +833,14 @@
 				"groups" : {
 					"www" : {}
 				},
+				"commands" : {
+					"BSetUpSkynet" : {
+						"command" : "/etc/skynet/skynet-master/setup.sh"
+					},
+					"ASetPermissions" : {
+							"command" : "chmod 755 /etc/skynet/skynet-master/setup.sh"
+					}
+				},
 				"services" : {
 					"sysvinit" : {
 						"nginx" : {
@@ -841,7 +855,8 @@
 						},
 						"php-fpm-5.5" : {
 							"enabled" : "true",
-							"ensureRunning" : "true"
+							"ensureRunning" : "true",
+							"files" : ["/etc/config/php.ini"]
 						}
 					}
 				}
@@ -954,6 +969,10 @@
 					},
 					"ASetPermissions" : {
 							"command" : "chmod 755 /etc/skynet/skynet-master/setup.sh"
+					},
+					"CReverseProxyLocations" : {
+						"command" : "python /etc/skynet/skynet-master/scripts/rp_config.py"
+
 					}
 				},
 				"services" : {
