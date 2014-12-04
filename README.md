@@ -30,8 +30,9 @@ This could be easily modified to support Node, Java, etc.
 Getting Started:<br>
 1) You'll need to have at least one domain in your AWS account. Just the zone apex, nothing else.<br>
 2) Create a CloudFormation stack using the php-nginx.json template.<br>
-3) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root.<br>
+3) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root. You don't even need a Key Pair if you don't want.<br>
 - That's it! Give it a few minutes to get everything spun up and you should be able to go to: "subdomain.zoneapex/repo/env/phptest.php"
+- You can also test that Skynet is responding by sending a POST to URL:6666/update with any JSON
 
 At this point, you haven't accomplished much more than a standard CF Template. However, Skynet *is* running now. So if you've put a real repo and branch in your parameters, you should be able to add your SSH key into the appropriate S3 location (see below), add the webook into Github, and be off to the races.
 
