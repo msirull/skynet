@@ -403,8 +403,8 @@
             "InstanceProtocol": "SSL"
           },
           {
-            "InstancePort": "6666",
-            "LoadBalancerPort": "6666",
+            "InstancePort": "1666",
+            "LoadBalancerPort": "1666",
             "Protocol": "HTTP",
             "InstanceProtocol": "HTTP"
           }
@@ -456,8 +456,8 @@
             "InstanceProtocol": "SSL"
           },
           {
-            "InstancePort": "6666",
-            "LoadBalancerPort": "6666",
+            "InstancePort": "1666",
+            "LoadBalancerPort": "1666",
             "Protocol": "HTTP",
             "InstanceProtocol": "HTTP"
           }
@@ -1178,8 +1178,8 @@
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
-            "FromPort": "6666",
-            "ToPort": "6666",
+            "FromPort": "1666",
+            "ToPort": "1666",
             "CidrIp": "10.0.0.0/16"
           },
           {
@@ -1190,8 +1190,8 @@
           },
           {
             "IpProtocol": "tcp",
-            "FromPort": "6666",
-            "ToPort": "6666",
+            "FromPort": "1666",
+            "ToPort": "1666",
             "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"}
           },
           {
@@ -1553,8 +1553,8 @@
           "Ref": "sgUpdateMaintenance"
         },
         "IpProtocol": "tcp",
-        "FromPort": "6666",
-        "ToPort": "6666",
+        "FromPort": "1666",
+        "ToPort": "1666",
         "CidrIp": "0.0.0.0/0"
       }
     },
