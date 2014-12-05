@@ -757,16 +757,39 @@
       "Type": "AWS::S3::Bucket",
       "Properties": {}
     },
-    "maintenanceQueue": {
+    "maintenanceQueue1": {
       "Type": "AWS::SQS::Queue",
       "Properties" : {
         "VisibilityTimeout": "0",
-      "QueueName" : {
+		"ReceiveMessageWaitTimeSeconds" : 20,
+		"QueueName" : {
               "Fn::Join": [
                 "",
                 [
                   {
                     "Ref": "PrivateRepo"
+                  },
+                  "-",
+                  {
+                    "Ref": "Environment"
+                  },
+                  "-",
+                  "maint"
+                ]
+              ]
+            }}
+    },
+    "maintenanceQueue2": {
+      "Type": "AWS::SQS::Queue",
+      "Properties" : {
+        "VisibilityTimeout": "0",
+        "ReceiveMessageWaitTimeSeconds" : 20,
+		"QueueName" : {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "PublicRepo"
                   },
                   "-",
                   {
