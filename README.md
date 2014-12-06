@@ -1,6 +1,6 @@
 skynet
 ======
-AWS Autonomoy...going beyond automation
+AWS Autonomy...going beyond automation
 
 Basic Concepts:
 - Servers talk to each other to coordinate and "assimilate" including: code updates, config updates, service registration, etc.
