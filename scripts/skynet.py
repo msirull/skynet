@@ -2,10 +2,9 @@ from flask import Flask, request, current_app
 from threading import Thread
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
-import boto.sqs, boto.ec2, urllib2, git, subprocess, shutil, time, json, datetime, hmac
+import boto.sqs, boto.ec2, urllib2, git, subprocess, shutil, time, json, datetime, hmac, os, errno
 from hashlib import sha1
 from boto.s3.connection import S3Connection
-from Carbon.Controls import cThumbColor
 
 app = Flask(__name__)
 #iid = get_instance_metadata()['instance-id']
@@ -17,7 +16,7 @@ region='us-west-2'
 ec2_conn = boto.ec2.connect_to_region(region)
 sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
-cth = "0"
+cth = ""
 skynet_source="https://raw.githubusercontent.com/msirull/skynet/master/scripts/skynet.py"
 reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : ptags["maintenance-group"]})
 instances = [i for r in reservations for i in r.instances]
@@ -31,6 +30,7 @@ webroot="/var/www/html/"
 repo_bucket="repo-staging"
 gittoken='w3rQ2Q4KK7Wm73ANqg' #I know I need to move this
 omsg = ""
+repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
 
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
@@ -127,6 +127,17 @@ def in_notify():
 	thr.start()
 	return "Message Received"
 
+def recursive_move(src, dst):
+	source = os.listdir(src)
+	for f in source:
+		try:
+			shutil.copytree(f, dst+f, symlinks=True, ignore=None)
+			print "Moving" + f
+			shutil.rmtree(src+f)
+		except OSError as e:
+			if e.errno == errno.ENOTDIR:
+				shutil.move(src+f, dst+f)
+
 def update():
 	# Start update process
 	currenttime=str(int(time.time()))
@@ -160,15 +171,16 @@ def update():
 	return
 	
 def wait():
+	time.sleep(2)
 	while True:
 		count=q.count()
 		if count > 10:
 			num=10
 		else:
 			num=count
-		rs = q.get_messages(num_messages=num, attributes='All', message_attributes=['instance-id'], wait_time_seconds=10)
+		rs = q.get_messages(num_messages=num, attributes='All', message_attributes=['instance-id'])
 		oldest_date = 99999999999999999 
-		for i in range(0,num-1):
+		for i in range(num):
 			timestamp=int(rs[i].attributes['SentTimestamp'])
 			miid=rs[i].message_attributes['instance-id']['string_value']
 			if timestamp < oldest_date:
@@ -179,39 +191,85 @@ def wait():
 			cmp
 		except NameError:
 			cmp=omsg
+		try:
+			cth
+		except NameError:
+			cth=""
 		if cth == iid:
-			global mid
-			mid=rs[i].id
-			print mid
+			global am
+			am=rs[i]
 			print "I'm going to start updating now because it's my turn"		
 			print "And here's what I'm going to do: " + cmp
-			thr2 = Thread(target=update2)
+			thr2 = Thread(target=decider)
 			thr2.start() 
 			return
 		else:
 			print "I'm in the queue! My message was " + omsg + " and so are " + str(count) + " other people"
-			time.sleep(3)
+def decider():
+	rmsg = json.loads(omsg)
+	if 'action' in rmsg and rmsg['action'] == 'config-update':
+		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
+		print "Config Updated!"
+		return complete_update()
+	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
+		f = urllib2.urlopen(skynet_source)
+		ff=open("/etc/config/skynet.py", "w")
+		ff.write(f.read())
+		ff.close()
+		shutil.copy('/etc/config/skynet.py', '/etc/config/skynet_main.py')
+		print "Assimilation Successful"
+		return complete_update()
+	if 'action' in rmsg and rmsg['action'] == 'code-update':
+		thr3 = Thread(target=s3_update)
+		thr3.start()
+		return
 
-def update2():
+def s3_update():
 	# Start update process
-	currenttime=str(int(time.time()))
-	regulartime=(datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
-	print "starting update process at "+regulartime
-	subprocess.call('rm -rf '+ work_dir, shell=True)
+	currenttime = str(int(time.time()))
+	regulartime = (datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
+	print "starting update process at " + regulartime
+	shutil.rmtree(work_dir+ptags['repo'], ignore_errors=True)	
+
 	# Copy from S3
-	
+	print "Downloading code from S3"
+	repo_bucket_files=repo_bucket_obj.list()
+	for k in repo_bucket_files:
+		key = str(k.key)
+		d = work_dir + key
+		try:
+			k.get_contents_to_filename(d)
+		except OSError:
+		# check if dir exists
+			if not os.path.exists(d):
+				os.makedirs(d)
+	# Find latest revision
+	repo_dir = os.listdir(work_dir+ ptags['repo'] + '/' + ptags['branch'] + '/')
+	latest = max(map(int,repo_dir))
 	# Insert compile scripts here
 	# Stop Services...the services need to not be hard coded
 	print "stopping services..."
 	for s in services:
 		subprocess.call('service ' + s + ' stop', shell=True)
-		# Moving/Archiving data
-	print "archiving data"
-	subprocess.call('mkdir /etc/backup/'+ currenttime, shell=True)
-	subprocess.call('mv '+ webroot+'*' ' /etc/backup/'+ currenttime, shell=True)
+	# Moving/Archiving data
+	#if not os.path.exists('/etc/backup/'):
+	#	os.makedirs('/etc/backup/')
+	os.mkdir('/etc/backup'+currenttime)
+	#recursive_move(webroot, '/etc/backup/'+currenttime+'/')
+	print "starting archive"
+	dst = '/etc/backup/'+currenttime+'/'
+	src = webroot
+	for f in os.listdir(src):
+		try:
+			shutil.copytree(src+f, dst+f)
+			shutil.rmtree(src + f)
+		except OSError as e:
+			if e.errno == errno.ENOTDIR:
+				shutil.move(src+f, dst+f)
+	#subprocess.call('cp -R '+ webroot+'*' ' /etc/backup/'+ currenttime +'/*', shell=True)
 	# Copy new data in
 	print "copying new data in"
-	subprocess.call('cp -r '+ work_dir +'* ' + webroot, shell=True)
+	subprocess.call('cp -r '+ work_dir + ptags['repo'] + '/' + ptags['branch'] + '/' + str(latest) + '/* ' + webroot, shell=True)
 	print "updating config"
 	# Get an up-to-date config file
 	subprocess.call('/etc/skynet/skynet-master/scripts/config_dl.sh /etc/config', shell=True)
@@ -219,12 +277,14 @@ def update2():
 	# Get everything working again
 	for s in services:
 		subprocess.call('service ' + s + ' start', shell=True)
-	print "update done!"
-	subprocess.call('aws s3 cp '+work_dir+' s3://'+repo_bucket+'/'+ptags["repo"]+'/'+ptags["branch"]+'/'+currenttime+' --recursive', shell=True)
-	print "copy to s3 done!"
-	print "Update successful!"
-	q.delete_message()
-	return
+	print "Update successful! It took " + str(int(time.time())-(int(currenttime))) + " seconds"
+	return complete_update()
 
+def complete_update():
+	q.delete_message(am)
+	am.get_body()
+	print "Message deleted from queue"
+	return
+	
 if __name__ == "__main__":
 	app.run(port=1666, debug=True)
