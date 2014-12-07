@@ -145,6 +145,7 @@ def update():
 	print "starting update process at "+regulartime
 	subprocess.call('rm -rf '+ work_dir, shell=True)
 	subprocess.call('git clone git@github.com:msirull/'+ repo +'.git '+ work_dir, shell=True)
+	shutil.rmtree(work_dir+'.git', ignore_errors=True)
 	# Insert compile scripts here
 	# Stop Services...the services need to not be hard coded
 	print "stopping services..."
@@ -226,16 +227,22 @@ def decider():
 
 def s3_update():
 	# Start update process
-	currenttime = str(int(time.time()))
+	ctime=int(time.time())
+	currenttime = str(ctime)
 	regulartime = (datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
 	print "starting update process at " + regulartime
-	shutil.rmtree(work_dir+ptags['repo'], ignore_errors=True)	
-
+	shutil.rmtree(work_dir+ptags['repo'], ignore_errors=True)
+	versions=[]
+	for k in repo_bucket_obj.list(ptags['repo'] + '/' + ptags['branch'] + '/','/'):
+		path = str(k.name)
+		ke=path.replace(ptags['repo'] + '/' + ptags['branch'] + '/', '')
+		versions.append(int(ke.replace('/', '')))
+	latest=max(versions)
 	# Copy from S3
 	print "Downloading code from S3"
-	repo_bucket_files=repo_bucket_obj.list()
+	repo_bucket_files=repo_bucket_obj.list(ptags['repo'] + '/' + ptags['branch'] + '/' + str(latest) + '/')
 	for k in repo_bucket_files:
-		key = str(k.key)
+		key = str(k.name)
 		d = work_dir + key
 		try:
 			k.get_contents_to_filename(d)
@@ -244,8 +251,6 @@ def s3_update():
 			if not os.path.exists(d):
 				os.makedirs(d)
 	# Find latest revision
-	repo_dir = os.listdir(work_dir+ ptags['repo'] + '/' + ptags['branch'] + '/')
-	latest = max(map(int,repo_dir))
 	# Insert compile scripts here
 	# Stop Services...the services need to not be hard coded
 	print "stopping services..."
@@ -277,7 +282,9 @@ def s3_update():
 	# Get everything working again
 	for s in services:
 		subprocess.call('service ' + s + ' start', shell=True)
-	print "Update successful! It took " + str(int(time.time())-(int(currenttime))) + " seconds"
+	complete_time=int(time.time())
+	duration=complete_time-ctime
+	print "Update successful! It took " + str(duration) + " seconds"
 	return complete_update()
 
 def complete_update():
