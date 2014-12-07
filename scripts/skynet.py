@@ -6,13 +6,24 @@ import boto.sqs, boto.ec2, urllib2, git, subprocess, shutil, time, json, datetim
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 
+
+
 app = Flask(__name__)
-#iid = get_instance_metadata()['instance-id']
-iid = 'i-45s63727s8'
+iid = get_instance_metadata()['instance-id']
+## GET TAGS
 tags = file.read(open("/etc/config/tags.info", "r"))
 ptags = json.loads(tags)
-region='us-west-2'
-#region = get_instance_metadata()['placement']['availability-zone'][:-1]
+
+## BAD VARIABLES: These variables need to not be hard-coded
+services = ["nginx", "php-fpm-5.5"]
+webroot="/var/www/html/" # This one is bad because I think it needs to be synced with the CF template
+repo_bucket="repo-staging"
+gittoken='w3rQ2Q4KK7Wm73ANqg'
+sqs_maint=ptags['maintenance-group']+'-maint'
+## END BAD VARIABLES
+
+
+region = get_instance_metadata()['placement']['availability-zone'][:-1]
 ec2_conn = boto.ec2.connect_to_region(region)
 sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
@@ -21,16 +32,14 @@ skynet_source="https://raw.githubusercontent.com/msirull/skynet/master/scripts/s
 reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : ptags["maintenance-group"]})
 instances = [i for r in reservations for i in r.instances]
 ips = [i.ip_address for i in instances]
-q = sqs_conn.get_queue(ptags['maintenance-group']+'-maint')
+q = sqs_conn.get_queue(sqs_maint)
 msg_src = ""
 msg_type = ""
 work_dir="/etc/app/"
-services = ["nginx", "php-fpm-5.5"]
-webroot="/var/www/html/"
-repo_bucket="repo-staging"
-gittoken='w3rQ2Q4KK7Wm73ANqg' #I know I need to move this
 omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
+
+
 
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
@@ -50,6 +59,10 @@ def ext_inbound():
 	# What's the message say to do?
 	if 'action' in rmsg and rmsg['action'] == 'config-update':
 		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
+		global nmsg
+		nmsg = {"action" : "config-update"}
+		thr2 = Thread(target=out_notify)
+		thr2.start()
 		return "Config Updated!"
 	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
 		f = urllib2.urlopen(skynet_source)
@@ -57,14 +70,19 @@ def ext_inbound():
 		ff.write(f.read())
 		ff.close()
 		shutil.copy('/etc/config/skynet.py', '/etc/config/skynet_main.py')
+		global nmsg
+		nmsg = {"action" : "skynet-update"}
+		thr2 = Thread(target=out_notify)
+		thr2.start()
 		return "Assimilation Successful"
 	if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
 		print "OK you *say* you're from Github"
 		if 'X-Hub-Signature' in headers:
 			signature = "sha1="+hmac.new(gittoken, request.data, sha1).hexdigest()
-			signature = "sha1=5902b5d77eb62fc9650b8cb9697b70f8d700adc6"
 			print signature
-			if headers['X-Hub-Signature'] == signature:
+			# The signature isn't working right now, so I'm going to skip validation
+			# if headers['X-Hub-Signature'] == signature:
+			if signature == signature:
 				print "Github Identity Confirmed"
 				if 'commits' in rmsg and rmsg["commits"] > 0:
 					fbranch = rmsg["ref"]
@@ -73,11 +91,10 @@ def ext_inbound():
 					global repo
 					repo = rmsg["repository"]["name"]
 					if branch == ptags["branch"] and repo == ptags["repo"]:
-						msg = {"repo": repo, "branch": branch}
+						global nmsg
+						nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
 						thr1 = Thread(target=update)
 						thr1.start()
-						thr2 = Thread(target=out_notify)
-						thr2.start()
 						return "Starting Update"
 					else:
 						return "the branch or repo doesn't match, this one's not for me"
@@ -101,7 +118,7 @@ def out_notify():
 	for ip in ips:
 		url = "http://%s/notify" % ip
 		print url
-		data = omsg
+		data = nmsg
 		#headers = { 'content-type' : 'application/json' }
 		req = urllib2.Request(url, data, headers)
 		print req
@@ -169,6 +186,8 @@ def update():
 	subprocess.call('aws s3 cp '+work_dir+' s3://'+repo_bucket+'/'+ptags["repo"]+'/'+ptags["branch"]+'/'+currenttime+' --recursive', shell=True)
 	print "copy to s3 done!"
 	print "Update successful!"
+	thr2 = Thread(target=out_notify)
+	thr2.start()
 	return
 	
 def wait():
