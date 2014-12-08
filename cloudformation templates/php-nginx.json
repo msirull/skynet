@@ -460,6 +460,12 @@
             "LoadBalancerPort": "1666",
             "Protocol": "TCP",
             "InstanceProtocol": "TCP"
+          },
+          {
+            "InstancePort": "666",
+            "LoadBalancerPort": "666",
+            "Protocol": "TCP",
+            "InstanceProtocol": "TCP"
           }
         ]
       }
