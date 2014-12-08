@@ -83,11 +83,13 @@
 
     "AWSRegionArch2AMI" : {
       "us-east-1"      : { "64" : "ami-b66ed3de" },
-      "us-west-2"      : { "64" : "ami-b5a7ea85" }
+      "us-west-2"      : { "64" : "ami-b5a7ea85" },
+      "eu-west-1"		: { "64" : "ami-6e7bd919"}
     },
     "NatAMI" : {
 	    "us-east-1" : { "64" : "ami-184dc970"}, 
-       "us-west-2" : {"64" : "ami-290f4119"}
+		"us-west-2" : {"64" : "ami-290f4119"},
+		"eu-west-1" : {"64" : "ami-14913f63"}
   	}
   },
   "Conditions" : {
@@ -460,12 +462,6 @@
             "LoadBalancerPort": "1666",
             "Protocol": "TCP",
             "InstanceProtocol": "TCP"
-          },
-          {
-            "InstancePort": "666",
-            "LoadBalancerPort": "666",
-            "Protocol": "TCP",
-            "InstanceProtocol": "TCP"
           }
         ]
       }
@@ -549,7 +545,7 @@
           },
           {
             "Key": "maintenance-queue",
-            "Value": { "Fn::GetAtt" : ["maintenanceQueue", "QueueName"] },
+            "Value": { "Fn::GetAtt" : ["maintenanceQueue1", "QueueName"] },
             "PropagateAtLaunch": true
           },
           {
@@ -664,7 +660,7 @@
           },
           {
             "Key": "maintenance-queue",
-            "Value": { "Fn::GetAtt" : ["maintenanceQueue", "QueueName"] },
+            "Value": { "Fn::GetAtt" : ["maintenanceQueue2", "QueueName"] },
             "PropagateAtLaunch": true
           },
           {
@@ -929,6 +925,19 @@
 							]]},
 							"owner" : "nginx",
 							"group" : "nginx"
+					},
+					"/etc/config/rpc.nginx" : {
+						"content" : { "Fn::Join" : [ "", [
+							"server { \n",
+							"listen       1666 default_server; \n",
+							"server_name  _; \n",
+							"root         /var/www/html; \n",
+							"\n",
+							"include /etc/config/rpc.locations;",
+							"} \n"
+							]]},
+							"owner" : "nginx",
+							"group" : "nginx"
 					}
 				},
 				"groups" : {
@@ -940,6 +949,10 @@
 					},
 					"ASetPermissions" : {
 							"command" : "chmod 755 /etc/skynet/skynet-master/setup.sh"
+					},
+					"CReverseProxyLocations" : {
+						"command" : "python /etc/skynet/skynet-master/scripts/rp_config.py"
+
 					}
 				},
 				"services" : {
@@ -1083,7 +1096,7 @@
 					"/etc/config/rpc.nginx" : {
 						"content" : { "Fn::Join" : [ "", [
 							"server { \n",
-							"listen       666 default_server; \n",
+							"listen       1666 default_server; \n",
 							"server_name  _; \n",
 							"root         /var/www/html; \n",
 							"\n",
@@ -1114,7 +1127,7 @@
 						"nginx" : {
 							"enabled" : "true",
 							"ensureRunning" : "true",
-							"files" : ["/etc/nginx/nginx.conf", "/etc/config/rp.locations", "/etc/config/rp.nginx"],
+							"files" : ["/etc/nginx/nginx.conf", "/etc/config/rp.locations", "/etc/config/rp.nginx", "/etc/config/rpc.nginx"],
 							"sources" : ["/var/www/html"]
 						},
 						"supervisord" : {
@@ -2030,7 +2043,7 @@
         "sqs:*"
       ],
       "Resource": [
-        { "Fn::GetAtt" : ["maintenanceQueue", "Arn"] }
+        { "Fn::GetAtt" : ["maintenanceQueue1", "Arn"] }
       ]
     }
   ]

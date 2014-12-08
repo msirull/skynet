@@ -1,4 +1,4 @@
-subdomain="testwest0"
+subdomain="europetest2"
 zoneapex="cloudnineit.net"
 configbucket="test-cf-templates"
 keypair="None"
@@ -6,9 +6,9 @@ privaterepo="test"
 publicrepo="edge"
 branch="master"
 env="prod"
-stack_name="TestWest"
-aregion="us-west-2"
-version=$(echo "0.1")
+stack_name="TestEurope2"
+aregion="eu-west-1"
+version=$(echo "1.0")
 mq=$(echo "$repo-$env-maint")
 aws s3 cp /Users/Me/Repos/skynet/cloudformation\ templates/php-nginx.json s3://$configbucket --profile test
-aws cloudformation update-stack --profile test --region "$aregion" --stack-name "$stack_name" --capabilities "CAPABILITY_IAM" --template-url https://s3.amazonaws.com/"$configbucket"/php-nginx.json --parameters ParameterKey=PublicRepo,ParameterValue="$publicrepo",UsePreviousValue=false ParameterKey=PrivateRepo,ParameterValue="$privaterepo",UsePreviousValue=false ParameterKey=KeyPair,ParameterValue="$keypair",UsePreviousValue=false ParameterKey=ZoneApex,ParameterValue="$zoneapex",UsePreviousValue=false ParameterKey=SubDomain,ParameterValue="$subdomain",UsePreviousValue=false ParameterKey=Branch,ParameterValue="$branch",UsePreviousValue=false ParameterKey=Environment,ParameterValue="$env",UsePreviousValue=false
+aws cloudformation create-stack --profile test --region "$aregion" --stack-name "$stack_name" --capabilities "CAPABILITY_IAM" --template-url https://s3.amazonaws.com/"$configbucket"/php-nginx.json --parameters ParameterKey=PublicRepo,ParameterValue="$publicrepo",UsePreviousValue=false ParameterKey=PrivateRepo,ParameterValue="$privaterepo",UsePreviousValue=false ParameterKey=KeyPair,ParameterValue="$keypair",UsePreviousValue=false ParameterKey=ZoneApex,ParameterValue="$zoneapex",UsePreviousValue=false ParameterKey=SubDomain,ParameterValue="$subdomain",UsePreviousValue=false ParameterKey=Branch,ParameterValue="$branch",UsePreviousValue=false ParameterKey=Environment,ParameterValue="$env",UsePreviousValue=false

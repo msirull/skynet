@@ -15,8 +15,8 @@ tags = file.read(open("/etc/config/tags.info", "r"))
 ptags = json.loads(tags)
 
 ## BAD VARIABLES: These variables need to not be hard-coded
-services = ["nginx", "php-fpm-5.5"]
-webroot="/var/www/html/" # This one is bad because I think it needs to be synced with the CF template
+services = ["nginx", "php-fpm-5.5"] # This one should come from the CloudFormation template
+webroot="/var/www/html/" # This one is bad because I think it needs to be retrieved from the CF template
 repo_bucket="repo-staging"
 gittoken='w3rQ2Q4KK7Wm73ANqg'
 sqs_maint=ptags['maintenance-group']+'-maint'
