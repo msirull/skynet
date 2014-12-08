@@ -941,7 +941,7 @@
 						"nginx" : {
 							"enabled" : "true",
 							"ensureRunning" : "true",
-							"files" : ["/etc/nginx/nginx.conf", "/etc/config/rp.locations", "/etc/config/rp.nginx"],
+							"files" : ["/etc/nginx/nginx.conf", "/etc/config/rp.locations", "/etc/config/rp.nginx", "/etc/config/rpc.nginx"],
 							"sources" : ["/var/www/html"]
 						},
 						"supervisord" : {
@@ -1069,6 +1069,19 @@
 							"root         /var/www/html; \n",
 							"\n",
 							"include /etc/config/rp.locations;",
+							"} \n"
+							]]},
+							"owner" : "nginx",
+							"group" : "nginx"
+					},
+					"/etc/config/rpc.nginx" : {
+						"content" : { "Fn::Join" : [ "", [
+							"server { \n",
+							"listen       666 default_server; \n",
+							"server_name  _; \n",
+							"root         /var/www/html; \n",
+							"\n",
+							"include /etc/config/rpc.locations;",
 							"} \n"
 							]]},
 							"owner" : "nginx",

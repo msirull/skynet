@@ -1,0 +1,11 @@
+       server {
+	listen       666 default_server;
+        server_name  _;
+        root         /var/www/html;
+
+
+	include /etc/config/rp.locations;
+
+    }
+
+
