@@ -3,7 +3,7 @@ skynet
 AWS Autonomy...going beyond automation
 
 Basic Concepts:
-- Servers talk to each other to coordinate and "assimilate" including: code updates, config updates, service registration, etc.
+- Servers talk to each other to coordinate operations including: code updates, config updates, service registration, etc.
 - Stacks autoupdate from Github webhooks
   - The first instance to receive the notification prepares the code (compiles, if necssary, and copies to S3)
   - If it updates successfully, it pushes the code to S3 and notifies the rest of the instances in its maintenance group
