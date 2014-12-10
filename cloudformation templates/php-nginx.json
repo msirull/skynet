@@ -1768,6 +1768,23 @@
                   "Resource": [
                 { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/", {"Ref": "PrivateRepo"}, "-config/"]]}
                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query"
+                  ],
+                  "Condition": {
+                    "ForAllValues:StringEquals": {
+                      "dynamodb:LeadingKeys": [{"Ref" : "Environment"}]
+                    }
+                  },
+                  "Resource": [
+                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/endpoints"]]}
+
+                 ]
                 }
               ]
             },

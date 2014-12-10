@@ -1,4 +1,4 @@
-subdomain="testeast3"
+subdomain="testeast1"
 zoneapex="cloudnineit.net"
 configbucket="test-cf-templates"
 keypair="easttest"
@@ -6,7 +6,7 @@ privaterepo="test"
 publicrepo="edge"
 branch="master"
 env="prod"
-stack_name="TestEast3"
+stack_name="TestEast1"
 aregion="us-east-1"
 version=$(echo "1.0")
 mq=$(echo "$repo-$env-maint")
