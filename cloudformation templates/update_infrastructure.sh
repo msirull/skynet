@@ -1,13 +1,13 @@
-subdomain="europetest2"
+subdomain="testeast3"
 zoneapex="cloudnineit.net"
 configbucket="test-cf-templates"
-keypair="None"
+keypair="easttest"
 privaterepo="test"
 publicrepo="edge"
 branch="master"
 env="prod"
-stack_name="TestEurope2"
-aregion="eu-west-1"
+stack_name="TestEast3"
+aregion="us-east-1"
 version=$(echo "1.0")
 mq=$(echo "$repo-$env-maint")
 aws s3 cp /Users/Me/Repos/skynet/cloudformation\ templates/php-nginx.json s3://$configbucket --profile test

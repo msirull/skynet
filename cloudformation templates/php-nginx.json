@@ -877,11 +877,14 @@
   						"gunicorn" : [],
   						"supervisor" : []
 					    
+					  },
+					  "rpm" : {
+						  "sumo" : "https://collectors.sumologic.com/rest/download/rpm/64"
 					  }
 				  },
 				"files" : {
 					"/temp/test.txt" : {
-						"content" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
+						"content" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name  --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
 					}
 				},
 				"commands" : { 
@@ -1051,11 +1054,14 @@
 						"flask" : [],
 						"gunicorn" : [],
 						"supervisor" : []
-					}	
+					},
+					  "rpm" : {
+						  "sumo" : "https://collectors.sumologic.com/rest/download/rpm/64"
+					  }	
 				},
 				"files" : {
 					"/temp/test.txt" : {
-						"content" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name endpoints --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
+						"content" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name  --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
 					}
 				},
 				"commands" : { 
