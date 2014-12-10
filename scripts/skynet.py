@@ -17,7 +17,7 @@ ptags = json.loads(tags)
 ## BAD VARIABLES: These variables need to not be hard-coded
 services = ["nginx", "php-fpm-5.5"] # This one should come from the CloudFormation template
 webroot="/var/www/html/" # This one is bad because I think it needs to be retrieved from the CF template
-repo_bucket="repo-staging" # Also from CF Template
+repo_bucket="code-staging" # Also from CF Template
 gittoken='w3rQ2Q4KK7Wm73ANqg' # Not sure what to do here. Dynamo?
 sqs_maint=ptags['maintenance-queue'] # Also from CF Template
 ## END BAD VARIABLES
@@ -39,7 +39,12 @@ work_dir="/etc/app/"
 omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
 
-
+## Filter Group IPs
+for ip in ips:
+	if ip is None:
+		ips.remove(ip)
+	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.'):
+		ips.remove(ip)
 
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
@@ -70,7 +75,6 @@ def ext_inbound():
 		ff.write(f.read())
 		ff.close()
 		shutil.copy('/etc/config/skynet.py', '/etc/config/skynet_main.py')
-		global nmsg
 		nmsg = {"action" : "skynet-update"}
 		thr2 = Thread(target=out_notify)
 		thr2.start()
@@ -91,7 +95,6 @@ def ext_inbound():
 					global repo
 					repo = rmsg["repository"]["name"]
 					if branch == ptags["branch"] and repo == ptags["repo"]:
-						global nmsg
 						nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
 						thr1 = Thread(target=update)
 						thr1.start()
@@ -115,16 +118,20 @@ def ext_inbound():
 	
 def out_notify():
 	print "notifying the hoard"
-	for ip in ips:
-		url = "http://%s/notify" % ip
-		print url
-		data = nmsg
-		#headers = { 'content-type' : 'application/json' }
-		req = urllib2.Request(url, data, headers)
-		print req
-		response = urllib2.urlopen(req)
-		print response.read()
-		print "success!"
+	if ips == "":
+		print "Nothing to do, no other hosts, see:" + ips
+		return
+	else:
+		for ip in ips:
+			url = "http://%s/notify" % ip
+			print url
+			data = nmsg
+			#headers = { 'content-type' : 'application/json' }
+			req = urllib2.Request(url, data, headers)
+			print req
+			response = urllib2.urlopen(req)
+			print response.read()
+			print "success!"
 	return
 
 @app.route('/notify', methods = ['POST'])
