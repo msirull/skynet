@@ -33,7 +33,7 @@ stack_items = table_obj.query_2(env__eq=env)
 for items in stack_items:
 	stack=items['layer']+"/"+items['env']
 	url=items['url']
-	if stack == (ptags['layer'] + '/' + ptags['env']):
+	if stack == (ptags['layer'] + '/' + env):
 		locations[stack] = '127.0.0.1'	
 	else:
 		locations[stack] = url
