@@ -40,10 +40,9 @@ omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
 
 ## Filter Group IPs
+ips = filter(None, ips)
 for ip in ips:
-	if ip is None:
-		ips.remove(ip)
-	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.'):
+	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.') or None:
 		ips.remove(ip)
 
 @app.route('/update', methods = ['POST'])
