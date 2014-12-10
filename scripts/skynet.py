@@ -80,7 +80,7 @@ def ext_inbound():
 		thr2.start()
 		return "Assimilation Successful"
 	if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
-		print "OK you *say* you're from Github"
+		print "OK you *say* you're from Github, but let's check your signature..."
 		if 'X-Hub-Signature' in headers:
 			signature = "sha1="+hmac.new(gittoken, request.data, sha1).hexdigest()
 			print signature

@@ -18,7 +18,6 @@ for items in stack_items:
 	file = open("/etc/config/rp.locations", "a")
 	file.write("location /" + stack +"/ {\n")
 	file.write("proxy_pass http://"+ locations[stack] +"/;"+"\n")
-	file.write("proxy_redirect http://"+ locations[stack] +"/ /"+stack+"/;\n")
 	file.write("}\n")
 	file.close()
 subprocess.call('service nginx reload', shell=True)
@@ -41,8 +40,7 @@ for items in stack_items:
 		port='1666'
 	file = open("/etc/config/rpc.locations", "a")
 	file.write("location /" + stack +"/ {\n")
-	file.write("proxy_pass http://"+ locations[stack] +":" + port + ";"+"\n")
-	file.write("proxy_redirect http://"+ locations[stack] +"/ /"+stack+"/;\n")
+	file.write("proxy_pass http://"+ locations[stack] +":" + port + "/;"+"\n")
 	file.write("}\n")
 	file.close()
 subprocess.call('service nginx reload', shell=True)
