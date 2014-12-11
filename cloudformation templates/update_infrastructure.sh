@@ -1,3 +1,4 @@
+#!/bin/sh
 subdomain="testeast1"
 zoneapex="cloudnineit.net"
 configbucket="test-cf-templates"

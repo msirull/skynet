@@ -39,6 +39,12 @@ sourceconfig["sources"][1]["sourceType"] = "LocalFile"
 sourceconfig["sources"][1]["name"] = "CloudFormation Logs"
 sourceconfig["sources"][1]["pathExpression"] = "/var/log/cfn-init.log"
 sourceconfig["sources"][1]["category"] = "deployment"
+# Cloudformation Command Source
+sourceconfig["sources"].append({})
+sourceconfig["sources"][1]["sourceType"] = "LocalFile"
+sourceconfig["sources"][1]["name"] = "CloudFormation Command Logs"
+sourceconfig["sources"][1]["pathExpression"] = "/var/log/cfn-init-cmd.log"
+sourceconfig["sources"][1]["category"] = "deployment"
 print sourceconfig
 if os.path.exists("/etc/config/default.sumo"):
     os.remove("/etc/config/default.sumo")
