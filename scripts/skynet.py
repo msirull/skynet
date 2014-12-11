@@ -6,8 +6,6 @@ import boto.sqs, boto.ec2, urllib2, git, subprocess, shutil, time, json, datetim
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 
-
-
 app = Flask(__name__)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
@@ -22,7 +20,7 @@ gittoken='w3rQ2Q4KK7Wm73ANqg' # Not sure what to do here. Dynamo?
 sqs_maint=ptags['maintenance-queue'] # Also from CF Template
 ## END BAD VARIABLES
 
-
+## Global Variables
 region = get_instance_metadata()['placement']['availability-zone'][:-1]
 ec2_conn = boto.ec2.connect_to_region(region)
 sqs_conn = boto.sqs.connect_to_region(region)
@@ -39,7 +37,7 @@ work_dir="/etc/app/"
 omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
 
-## Filter Group IPs
+## Filter Group IPs for local addresses only
 ips = filter(None, ips)
 for ip in ips:
 	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.') or None:

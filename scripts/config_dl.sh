@@ -1,3 +1,4 @@
+#!/bin/sh
 ##Get Instance Tags
 region=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed s'/.$//')
 iid=`curl -s http://169.254.169.254/latest/meta-data/instance-id`

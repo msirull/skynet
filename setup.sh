@@ -1,3 +1,4 @@
+#!/bin/sh
 cd /etc/skynet/skynet-master
 mkdir /var/log/skynet
 find /etc/config -name "*.sh" -type f -exec chmod 775 {} \;
