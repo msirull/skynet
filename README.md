@@ -29,8 +29,9 @@ This could be easily modified to support Node, Java, etc.
 
 Getting Started:<br>
 1) You'll need to have at least one domain in your AWS account. Just the hosted zone, nothing else.<br>
-2) Create a CloudFormation stack using the php-nginx.json template.<br>
-3) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root. You don't even need a Key Pair if you don't want.<br>
+2) Create an "endpoints" table in the region you're deploying to with a hash and range of "env" - "layer"
+3) Create a CloudFormation stack using the php-nginx.json template.<br>
+4) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root. You don't even need a Key Pair if you don't want.<br>
 - That's it! Give it a few minutes to get everything spun up and you should be able to go to: "subdomain.zoneapex/repo/env/phptest.php" (replace "repo" and "env" with the appropriate values)
 - You can also test that Skynet is responding by sending a POST to URL:1666/repo/env/update with any JSON or URL:1666/update for the edge layer (replace "repo" and "env" with the appropriate values)
 
@@ -42,8 +43,7 @@ Hard-Coded Settings (things I've done not flexible, just FYI):
 
 Assumptions (things you have to do):<br>
 1) An S3 config bucket that has directories for every layer you have. So if you're using the CF template, just add folders in the S3 Bucket it creates for every layer (at least 2, one private, one public). What goes here? Service settings, Git SSH keys, etc<br>
-2) Create a (blank) DynamoDB "endpoints" table with "env" and "layer" as the hash/key. This isn't in Cloudformation because (for now) this table is used for all environments. I suppose it doesn't have to be this way.<br>
-3) You're using Github, have set up your repo with a deployment key, and put that key in the appropriate S3 location (see above). If it has the correct extension (.pem), it should get moved into the right spot.
+2) You're using Github, have set up your repo with a deployment key, and put that key in the appropriate S3 location (see above). If it has the correct extension (.pem), it should get moved into the right spot.
 
 Notes:
 - There's a similar structure as the S3 config folder structure in DynamoDB tables for configuration info. This is the preferred location over S3 json files. You'll have better control over the config information your developers will have access to, and it will be easier for them to make updates.
