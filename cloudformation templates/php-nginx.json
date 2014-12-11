@@ -1670,7 +1670,14 @@
                       ]
                     }
                   ]
-                }
+                },
+                {
+				"Effect":"Allow",
+				"Action":[
+				"cloudformation:DescribeStackResources"
+			        ],
+				        "Resource":{"Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}]]}
+				    }
               ]
             },
         "Roles" : [{"Ref" : "ec2Role1"}, {"Ref" : "ec2Role2"}]
