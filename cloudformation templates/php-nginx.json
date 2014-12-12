@@ -1631,7 +1631,7 @@
     "GlobalConfigPolicy" : {
       "Type": "AWS::IAM::Policy",
       "Properties" : {
-        "PolicyName": "global-config-bucket-access",
+        "PolicyName": "global-config",
         "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
@@ -1671,7 +1671,7 @@
                 {
 				"Effect":"Allow",
 				"Action":[
-				"cloudformation:DescribeStackResources"
+				"cloudformation:DescribeStackResource"
 			        ],
 				        "Resource":"*"
 				    }
