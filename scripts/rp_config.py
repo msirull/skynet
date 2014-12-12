@@ -1,13 +1,17 @@
 from boto.dynamodb2.table import Table
 import json, os, subprocess
 from boto.utils import get_instance_metadata
+from boto.ec2 import EC2Connection
+ec2_conn = EC2Connection()
 
-tags = file.read(open("/etc/config/tags.info", "r"))
-ptags = json.loads(tags)
+iid = get_instance_metadata()['instance-id']
+reservations = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
+instance = reservations[0].instances[0]
+tags= instance.tags
 # Add default endpoint locations into Nginx
 if os.path.exists("/etc/config/rp.locations"):
 	os.remove("/etc/config/rp.locations")
-env = ptags['environment']
+env = tags['environment']
 tbl = "endpoints"
 locations = {}
 table_obj = Table(tbl)
@@ -26,7 +30,7 @@ subprocess.call('service nginx reload', shell=True)
 ## Add Skynet endpoint locations into Nginx
 if os.path.exists("/etc/config/rpc.locations"):
 	os.remove("/etc/config/rpc.locations")
-env = ptags['environment']
+env = tags['environment']
 tbl = "endpoints"
 locations = {}
 table_obj = Table(tbl)
@@ -37,7 +41,7 @@ stack_items = table_obj.query_2(env__eq=env)
 for items in stack_items:
 	stack=items['layer']+"/"+items['env']
 	url=items['url']
-	if stack == (ptags['layer'] + '/' + env) or stack == "/":
+	if stack == (tags['layer'] + '/' + env) or stack == "/":
 		locations[stack] = '127.0.0.1'
 		port='666'
 	else:

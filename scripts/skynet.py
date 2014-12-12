@@ -5,19 +5,22 @@ from boto.utils import get_instance_metadata
 import boto.sqs, boto.ec2, urllib2, git, subprocess, shutil, time, json, datetime, hmac, os, errno
 from hashlib import sha1
 from boto.s3.connection import S3Connection
-
+from boto.ec2 import EC2Connection
 app = Flask(__name__)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
-tags = file.read(open("/etc/config/tags.info", "r"))
-ptags = json.loads(tags)
+ec2_conn = EC2Connection()
+
+reservations = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
+instance = reservations[0].instances[0]
+tags= instance.tags
 
 ## BAD VARIABLES: These variables need to not be hard-coded
 services = ["nginx", "php-fpm-5.5"] # This one should come from the CloudFormation template
 webroot="/var/www/html/" # This one is bad because I think it needs to be retrieved from the CF template
 repo_bucket="code-staging" # Also from CF Template
 gittoken='w3rQ2Q4KK7Wm73ANqg' # Not sure what to do here. Dynamo?
-sqs_maint=ptags['maintenance-queue'] # Also from CF Template
+sqs_maint=tags['maintenance-queue'] # Also from CF Template
 ## END BAD VARIABLES
 
 ## Global Variables
@@ -27,7 +30,7 @@ sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
 cth = ""
 skynet_source="https://raw.githubusercontent.com/msirull/skynet/master/scripts/skynet.py"
-reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : ptags["maintenance-group"]})
+reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
 instances = [i for r in reservations for i in r.instances]
 ips = [i.ip_address for i in instances]
 q = sqs_conn.get_queue(sqs_maint)
@@ -91,7 +94,7 @@ def ext_inbound():
 					branch = fbranch.replace("refs/heads/", "")
 					global repo
 					repo = rmsg["repository"]["name"]
-					if branch == ptags["branch"] and repo == ptags["repo"]:
+					if branch == tags["branch"] and repo == tags["repo"]:
 						nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
 						thr1 = Thread(target=update)
 						thr1.start()
@@ -187,7 +190,7 @@ def update():
 	for s in services:
 		subprocess.call('service ' + s + ' start', shell=True)
 	print "update done!"
-	subprocess.call('aws s3 cp '+work_dir+' s3://'+repo_bucket+'/'+ptags["repo"]+'/'+ptags["branch"]+'/'+currenttime+' --recursive', shell=True)
+	subprocess.call('aws s3 cp '+work_dir+' s3://'+repo_bucket+'/'+tags["repo"]+'/'+tags["branch"]+'/'+currenttime+' --recursive', shell=True)
 	print "copy to s3 done!"
 	print "Update successful!"
 	thr2 = Thread(target=out_notify)
@@ -254,16 +257,16 @@ def s3_update():
 	currenttime = str(ctime)
 	regulartime = (datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
 	print "starting update process at " + regulartime
-	shutil.rmtree(work_dir+ptags['repo'], ignore_errors=True)
+	shutil.rmtree(work_dir+tags['repo'], ignore_errors=True)
 	versions=[]
-	for k in repo_bucket_obj.list(ptags['repo'] + '/' + ptags['branch'] + '/','/'):
+	for k in repo_bucket_obj.list(tags['repo'] + '/' + tags['branch'] + '/','/'):
 		path = str(k.name)
-		ke=path.replace(ptags['repo'] + '/' + ptags['branch'] + '/', '')
+		ke=path.replace(tags['repo'] + '/' + tags['branch'] + '/', '')
 		versions.append(int(ke.replace('/', '')))
 	latest=max(versions)
 	# Copy from S3
 	print "Downloading code from S3"
-	repo_bucket_files=repo_bucket_obj.list(ptags['repo'] + '/' + ptags['branch'] + '/' + str(latest) + '/')
+	repo_bucket_files=repo_bucket_obj.list(tags['repo'] + '/' + tags['branch'] + '/' + str(latest) + '/')
 	for k in repo_bucket_files:
 		key = str(k.name)
 		d = work_dir + key
@@ -297,7 +300,7 @@ def s3_update():
 	#subprocess.call('cp -R '+ webroot+'*' ' /etc/backup/'+ currenttime +'/*', shell=True)
 	# Copy new data in
 	print "copying new data in"
-	subprocess.call('cp -r '+ work_dir + ptags['repo'] + '/' + ptags['branch'] + '/' + str(latest) + '/* ' + webroot, shell=True)
+	subprocess.call('cp -r '+ work_dir + tags['repo'] + '/' + tags['branch'] + '/' + str(latest) + '/* ' + webroot, shell=True)
 	print "updating config"
 	# Get an up-to-date config file
 	subprocess.call('/etc/skynet/skynet-master/scripts/config_dl.sh /etc/config', shell=True)

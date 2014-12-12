@@ -9,7 +9,6 @@ cf_conn=CloudFormationConnection()
 s3_conn = S3Connection()
 
 iid = get_instance_metadata()['instance-id']
-
 reservations = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
 instance = reservations[0].instances[0]
 tags= instance.tags
