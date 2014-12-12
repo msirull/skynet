@@ -5,6 +5,7 @@
 
 
 	include /etc/config/rp.locations;
+	include /etc/config/skynet-nginx.locations;
 
     }
 

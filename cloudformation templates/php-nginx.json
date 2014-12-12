@@ -936,7 +936,7 @@
 							"server_name  _; \n",
 							"root         /var/www/html; \n",
 							"\n",
-							"include /etc/config/rpc.locations;",
+							"include /etc/config/skynet-nginx.locations;\n",
 							"} \n"
 							]]},
 							"owner" : "nginx",
@@ -952,10 +952,6 @@
 					},
 					"ASetPermissions" : {
 							"command" : "chmod 755 /etc/skynet/skynet-master/setup.sh"
-					},
-					"CReverseProxyLocations" : {
-						"command" : "python /etc/skynet/skynet-master/scripts/rp_config.py"
-
 					}
 				},
 				"services" : {
@@ -1106,7 +1102,8 @@
 							"server_name  _; \n",
 							"root         /var/www/html; \n",
 							"\n",
-							"include /etc/config/rpc.locations;",
+							"include /etc/config/rpc.locations;\n",
+   							"include /etc/config/skynet-nginx.locations;\n",
 							"} \n"
 							]]},
 							"owner" : "nginx",

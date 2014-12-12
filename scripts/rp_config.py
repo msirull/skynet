@@ -32,12 +32,7 @@ locations = {}
 table_obj = Table(tbl)
 stack_items = table_obj.query_2(env__eq=env)
 
-## Add default routing to self for Skynet in Nginx
-file = open("/etc/config/rpc.locations", "a")
-file.write("location / {\n")
-file.write("proxy_pass http://localhost:666/;"+"\n")
-file.write("}\n")
-file.close()
+
 ## Add data from DynamoDB endpoints table
 for items in stack_items:
 	stack=items['layer']+"/"+items['env']

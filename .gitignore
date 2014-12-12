@@ -7,3 +7,5 @@
 .idea/vcs.xml
 
 cloudformation templates/update_infrastructure.sh
+
+cloudformation templates/update_infrastructure.sh
