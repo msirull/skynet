@@ -8,6 +8,7 @@ cp ./generic_config/nginx.conf /etc/nginx/
 cp ./generic_config/sshconfig /root/.ssh/config
 ./scripts/gitclone.sh
 python ./scripts/service_registration.py
+python ./scripts/sumo_config.py
 cp ./generic_config/skynet-nginx.locations /etc/config/
 cp ./generic_config/supervisord.conf /etc/
 cp ./generic_config/supervisord /etc/rc.d/init.d
