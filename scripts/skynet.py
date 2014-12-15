@@ -13,7 +13,7 @@ ec2_conn = EC2Connection()
 
 reservations = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
 instance = reservations[0].instances[0]
-tags= instance.tags
+tags = instance.tags
 
 ## BAD VARIABLES: These variables need to not be hard-coded
 services = ["nginx", "php-fpm-5.5"] # This one should come from the CloudFormation template
@@ -312,8 +312,8 @@ def s3_update():
 	duration=complete_time-ctime
 	print "Update successful! It took " + str(duration) + " seconds"
 	thr4 = Thread(target=complete_update)
-		thr4.start()
-	return
+	thr4.start()
+
 
 def complete_update():
 	q.delete_message(am)
