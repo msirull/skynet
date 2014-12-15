@@ -311,7 +311,9 @@ def s3_update():
 	complete_time=int(time.time())
 	duration=complete_time-ctime
 	print "Update successful! It took " + str(duration) + " seconds"
-	return complete_update()
+	thr4 = Thread(target=complete_update)
+		thr4.start()
+	return
 
 def complete_update():
 	q.delete_message(am)
