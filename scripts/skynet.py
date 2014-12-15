@@ -2,7 +2,7 @@ from flask import Flask, request, current_app
 from threading import Thread
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
-import boto.sqs, boto.ec2, urllib2, git, subprocess, shutil, time, json, datetime, hmac, os, errno
+import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hmac, os, errno
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 from boto.ec2 import EC2Connection
@@ -52,70 +52,52 @@ def ext_inbound():
 	global omsg
 	omsg = request.data
 	rmsg = json.loads(request.data)
-	# Only move forward if there's a commit
 	msg=request.data
 	# Decode
-	jmsg = json.dumps(msg)		
+	jmsg = json.dumps(msg)
 	print(jmsg)
 	global headers
 	headers = request.headers
 	print headers
 	# Validate sender
 	# What's the message say to do?
-	if 'action' in rmsg and rmsg['action'] == 'config-update':
-		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
-		global nmsg
-		nmsg = {"action" : "config-update"}
-		thr2 = Thread(target=out_notify)
-		thr2.start()
-		return "Config Updated!"
-	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
-		f = urllib2.urlopen(skynet_source)
-		ff=open("/etc/config/skynet.py", "w")
-		ff.write(f.read())
-		ff.close()
-		shutil.copy('/etc/config/skynet.py', '/etc/config/skynet_main.py')
-		nmsg = {"action" : "skynet-update"}
-		thr2 = Thread(target=out_notify)
-		thr2.start()
-		return "Assimilation Successful"
-	if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
-		print "OK you *say* you're from Github, but let's check your signature..."
-		if 'X-Hub-Signature' in headers:
-			signature = "sha1="+hmac.new(gittoken, request.data, sha1).hexdigest()
-			print signature
-			# The signature isn't working right now, so I'm going to skip validation
-			# if headers['X-Hub-Signature'] == signature:
-			if signature == signature:
-				print "Github Identity Confirmed"
-				if 'commits' in rmsg and rmsg["commits"] > 0:
-					fbranch = rmsg["ref"]
-					global branch
-					branch = fbranch.replace("refs/heads/", "")
-					global repo
-					repo = rmsg["repository"]["name"]
-					if branch == tags["branch"] and repo == tags["repo"]:
-						nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
-						thr1 = Thread(target=update)
-						thr1.start()
-						return "Starting Update"
-					else:
-						return "the branch or repo doesn't match, this one's not for me"
+	thr0 = Thread(target=decider)
+	thr0.start()
+	return "Thank You"
+
+
+def git_verify():
+	rmsg = json.loads(omsg)
+	if 'X-Hub-Signature' in headers:
+		signature = "sha1="+hmac.new(gittoken, request.data, sha1).hexdigest()
+		print signature
+		# The signature isn't working right now, so I'm going to skip validation
+		# if headers['X-Hub-Signature'] == signature:
+		if signature == signature:
+			print "Github Identity Confirmed"
+			if 'commits' in rmsg and rmsg["commits"] > 0:
+				fbranch = rmsg["ref"]
+				global branch
+				branch = fbranch.replace("refs/heads/", "")
+				global repo
+				repo = rmsg["repository"]["name"]
+				if branch == tags["branch"] and repo == tags["repo"]:
+					global nmsg
+					nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
+					thr1 = Thread(target=update)
+					thr1.start()
+					print "Starting Update"
 				else:
-					print "No commits"
-					return "nothing to do, there's no commits"
+					print "the branch or repo doesn't match, this one's not for me"
 			else:
-				print "Access Denied - Hashes don't match"
-				return "You don't know me"
+				print "No commits"
 		else:
-			print "There's no Github Signature"
-			return "I don't believe you"
+			print "Access Denied - Hashes don't match"
 	else:
-		print "Not a recognized notification"
-		return "I don't know what's going on here"
+		print "There's no Github Signature"
+
 
 	# Notify maintenance group
-	
 def out_notify():
 	print "notifying the hoard"
 	if ips == "":
@@ -237,7 +219,9 @@ def decider():
 	if 'action' in rmsg and rmsg['action'] == 'config-update':
 		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
 		print "Config Updated!"
-		return complete_update()
+		thr1 = Thread(target=complete_update)
+		thr1.start()
+		return
 	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
 		f = urllib2.urlopen(skynet_source)
 		ff=open("/etc/config/skynet.py", "w")
@@ -245,11 +229,20 @@ def decider():
 		ff.close()
 		shutil.copy('/etc/config/skynet.py', '/etc/config/skynet_main.py')
 		print "Assimilation Successful"
-		return complete_update()
+		thr1 = Thread(target=complete_update)
+		thr1.start()
+		return
 	if 'action' in rmsg and rmsg['action'] == 'code-update':
 		thr3 = Thread(target=s3_update)
 		thr3.start()
 		return
+	if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
+		print "OK you *say* you're from Github, but let's check your signature..."
+		thr2 = Thread(target=git_verify)
+		thr2.start()
+		return
+	print "Not a recognized notification"
+	return
 
 def s3_update():
 	# Start update process
