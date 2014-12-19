@@ -6,6 +6,8 @@ import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hm
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 from boto.ec2 import EC2Connection
+from Tkconstants import FIRST
+from multiprocessing.process import ORIGINAL_DIR
 app = Flask(__name__)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
@@ -56,6 +58,8 @@ def ext_inbound():
 	print headers
 	global am
 	am = None
+	global original
+	original = True
 	# Validate sender
 	# What's the message say to do?
 	thr0 = Thread(target=decider)
@@ -206,8 +210,8 @@ def wait():
 			am=rs[i]
 			print "I'm going to start updating now because it's my turn"		
 			print "And here's what I'm going to do: " + cmp
-			thr2 = Thread(target=decider)
-			thr2.start() 
+			thr6 = Thread(target=decider)
+			thr6.start() 
 			return
 		else:
 			print "I'm in the queue! My message was " + omsg + " and so are " + str(count) + " other people"
@@ -216,6 +220,9 @@ def decider():
 	if 'action' in rmsg and rmsg['action'] == 'config-update':
 		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
 		print "Config Updated!"
+		if original:
+			thr7 = Thread(target=out_notify)
+			thr7.start()
 		thr1 = Thread(target=complete_update)
 		thr1.start()
 		return
@@ -225,6 +232,9 @@ def decider():
 		os.chmod("/etc/skynet/setup.sh", 0775)
 		subprocess.call('/etc/skynet/setup.sh', shell=True)
 		print "Assimilation Successful"
+		if original:
+			thr7 = Thread(target=out_notify)
+			thr7.start()
 		thr5 = Thread(target=complete_update)
 		thr5.start()
 		return
