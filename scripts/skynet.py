@@ -6,8 +6,8 @@ import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hm
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 from boto.ec2 import EC2Connection
-from Tkconstants import FIRST
-from multiprocessing.process import ORIGINAL_DIR
+
+
 app = Flask(__name__)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
