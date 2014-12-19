@@ -2,7 +2,7 @@ from flask import Flask, request, current_app
 from threading import Thread
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
-import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hmac, os, errno
+import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hmac, os, errno, git
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 from boto.ec2 import EC2Connection
@@ -51,11 +51,6 @@ def ext_inbound():
 	# Store Request
 	global omsg
 	omsg = request.data
-	rmsg = json.loads(request.data)
-	msg=request.data
-	# Decode
-	jmsg = json.dumps(msg)
-	print(jmsg)
 	global headers
 	headers = request.headers
 	print headers
@@ -69,7 +64,7 @@ def ext_inbound():
 def git_verify():
 	rmsg = json.loads(omsg)
 	if 'X-Hub-Signature' in headers:
-		signature = "sha1="+hmac.new(gittoken, request.data, sha1).hexdigest()
+		signature = "sha1="+hmac.new(gittoken, omsg, sha1).hexdigest()
 		print signature
 		# The signature isn't working right now, so I'm going to skip validation
 		# if headers['X-Hub-Signature'] == signature:
@@ -223,11 +218,9 @@ def decider():
 		thr1.start()
 		return
 	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
-		f = urllib2.urlopen(skynet_source)
-		ff=open("/etc/config/skynet.py", "w")
-		ff.write(f.read())
-		ff.close()
-		shutil.copy('/etc/config/skynet.py', '/etc/config/skynet_main.py')
+		shutil.rmtree("/etc/skynet", ignore_errors=True)
+		git.Repo.clone_from("https://github.com/msirull/skynet", "/etc/skynet")
+		subprocess.call('/etc/skynet/setup.sh', shell=True)
 		print "Assimilation Successful"
 		thr1 = Thread(target=complete_update)
 		thr1.start()

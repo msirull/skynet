@@ -22,7 +22,6 @@ cb_obj = s3_conn.get_bucket(config_bucket, validate=False)
 sumoconfk = cb_obj.new_key('/global/sumo.conf')
 sumoconf = sumoconfk.get_contents_as_string()
 sumoconf=sumoconf.replace("name=name", "name=%s" %name)
-print sumoconf
 if os.path.exists("/etc/sumo.conf"):
     os.remove("/etc/sumo.conf")
 file = open("/etc/sumo.conf", "a")
@@ -37,7 +36,7 @@ sourceconfig["sources"] = []
 sourceconfig["sources"].append({})
 sourceconfig["sources"][0]["sourceType"] = "LocalFile"
 sourceconfig["sources"][0]["name"] = "Skynet Logs"
-sourceconfig["sources"][0]["pathExpression"] = "/var/logs/skynet/supervisord.log"
+sourceconfig["sources"][0]["pathExpression"] = "/var/logs/skynet/*.log"
 sourceconfig["sources"][0]["category"] = "skynet"
     # Cloudformation Source
 sourceconfig["sources"].append({})

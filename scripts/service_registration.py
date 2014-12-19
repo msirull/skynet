@@ -12,12 +12,14 @@ tags= instance.tags
 
 
 # Register with DynamoDB
-env = tags['environment']
-tbl = "endpoints"
-locations = {}
-table_obj = Table(tbl)
-table_obj.put_item(data={
-	'env': tags['environment'],
-	'layer': tags['layer'],
-	'url': tags['elb_url']
-}, overwrite=True)
+def main():
+	tbl = "endpoints"
+	table_obj = Table(tbl)
+	table_obj.put_item(data={
+		'env': tags['environment'],
+		'layer': tags['layer'],
+		'url': tags['elb_url']
+	}, overwrite=True)
+
+if __name__ == '__main__':
+	main()
