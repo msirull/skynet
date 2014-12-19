@@ -144,6 +144,7 @@ def update():
 	currenttime=str(int(time.time()))
 	regulartime=(datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
 	print "starting update process at "+regulartime
+	shutil.rmtree(work_dir, ignore_errors=True)
 	subprocess.call('rm -rf '+ work_dir, shell=True)
 	subprocess.call('git clone git@github.com:msirull/'+ repo +'.git '+ work_dir, shell=True)
 	shutil.rmtree(work_dir+'.git', ignore_errors=True)
@@ -235,6 +236,7 @@ def decider():
 		thr2 = Thread(target=git_verify)
 		thr2.start()
 		return
+	# If nothing matches
 	print "Not a recognized notification"
 	return
 
@@ -303,7 +305,11 @@ def s3_update():
 
 
 def complete_update():
-	if am:
+	try:
+		am
+	except NameError:
+		return
+	else:	
 		q.delete_message(am)
 		am.get_body()
 		print "Message deleted from queue"
