@@ -45,21 +45,21 @@ sourceconfig["sources"][1]["sourceType"] = "LocalFile"
 sourceconfig["sources"][1]["name"] = "CloudFormation Logs"
 sourceconfig["sources"][1]["pathExpression"] = "/var/log/cfn-init.log"
 sourceconfig["sources"][1]["category"] = "deployment"
-sourceconfig["sources"][0]["timeZone"] = "UTC"
+sourceconfig["sources"][1]["timeZone"] = "UTC"
     # Cloudformation Command Source
 sourceconfig["sources"].append({})
 sourceconfig["sources"][2]["sourceType"] = "LocalFile"
 sourceconfig["sources"][2]["name"] = "CloudFormation Command Logs"
 sourceconfig["sources"][2]["pathExpression"] = "/var/log/cfn-init-cmd.log"
 sourceconfig["sources"][2]["category"] = "deployment"
-sourceconfig["sources"][0]["timeZone"] = "UTC"
+sourceconfig["sources"][2]["timeZone"] = "UTC"
     # Cloudformation Command Source
 sourceconfig["sources"].append({})
 sourceconfig["sources"][3]["sourceType"] = "LocalFile"
 sourceconfig["sources"][3]["name"] = "Nginx Logs"
 sourceconfig["sources"][3]["pathExpression"] = "/var/log/nginx/error.log"
 sourceconfig["sources"][3]["category"] = "web-server"
-sourceconfig["sources"][0]["timeZone"] = "UTC"
+sourceconfig["sources"][3]["timeZone"] = "UTC"
 
 if os.path.exists("/etc/config/default.sumo"):
     os.remove("/etc/config/default.sumo")
