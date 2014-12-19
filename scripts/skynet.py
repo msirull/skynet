@@ -225,8 +225,8 @@ def decider():
 		os.chmod("/etc/skynet/setup.sh", 0775)
 		subprocess.call('/etc/skynet/setup.sh', shell=True)
 		print "Assimilation Successful"
-		thr1 = Thread(target=complete_update)
-		thr1.start()
+		thr5 = Thread(target=complete_update)
+		thr5.start()
 		return
 	if 'action' in rmsg and rmsg['action'] == 'code-update':
 		thr3 = Thread(target=s3_update)
@@ -309,8 +309,10 @@ def complete_update():
 	try:
 		am
 	except NameError:
-		return
-	else:	
+		am = None
+	else:
+		am = am
+	if am:	
 		q.delete_message(am)
 		am.get_body()
 		print "Message deleted from queue"
