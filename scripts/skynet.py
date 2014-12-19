@@ -54,6 +54,8 @@ def ext_inbound():
 	global headers
 	headers = request.headers
 	print headers
+	global am
+	am = None
 	# Validate sender
 	# What's the message say to do?
 	thr0 = Thread(target=decider)
@@ -145,7 +147,6 @@ def update():
 	regulartime=(datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
 	print "starting update process at "+regulartime
 	shutil.rmtree(work_dir, ignore_errors=True)
-	subprocess.call('rm -rf '+ work_dir, shell=True)
 	subprocess.call('git clone git@github.com:msirull/'+ repo +'.git '+ work_dir, shell=True)
 	shutil.rmtree(work_dir+'.git', ignore_errors=True)
 	# Insert compile scripts here
