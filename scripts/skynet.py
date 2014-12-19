@@ -220,6 +220,7 @@ def decider():
 	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
 		shutil.rmtree("/etc/skynet", ignore_errors=True)
 		git.Repo.clone_from("https://github.com/msirull/skynet", "/etc/skynet")
+		os.chmod("/etc/skynet/setup.sh", 0775)
 		subprocess.call('/etc/skynet/setup.sh', shell=True)
 		print "Assimilation Successful"
 		thr1 = Thread(target=complete_update)

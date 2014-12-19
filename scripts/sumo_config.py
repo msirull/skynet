@@ -56,7 +56,6 @@ sourceconfig["sources"][3]["sourceType"] = "LocalFile"
 sourceconfig["sources"][3]["name"] = "Nginx Logs"
 sourceconfig["sources"][3]["pathExpression"] = "/var/log/nginx/error.log"
 sourceconfig["sources"][3]["category"] = "web-server"
-print sourceconfig
 if os.path.exists("/etc/config/default.sumo"):
     os.remove("/etc/config/default.sumo")
 file = open("/etc/config/default.sumo", "a")
