@@ -66,4 +66,4 @@ if os.path.exists("/etc/config/default.sumo"):
 file = open("/etc/config/default.sumo", "a")
 file.write(json.dumps(sourceconfig))
 file.close()
-subprocess.call("/etc/init.d/collector start", shell=True)
+subprocess.call("/etc/init.d/collector restart", shell=True)
