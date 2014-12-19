@@ -230,11 +230,11 @@ def decider():
 		shutil.rmtree("/etc/skynet", ignore_errors=True)
 		git.Repo.clone_from("https://github.com/msirull/skynet", "/etc/skynet")
 		os.chmod("/etc/skynet/setup.sh", 0775)
-		subprocess.call('/etc/skynet/setup.sh', shell=True)
-		print "Assimilation Successful"
 		if original:
 			thr7 = Thread(target=out_notify)
 			thr7.start()
+		subprocess.call('/etc/skynet/setup.sh', shell=True)
+		print "Assimilation Successful"
 		thr5 = Thread(target=complete_update)
 		thr5.start()
 		return
