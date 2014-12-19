@@ -302,9 +302,10 @@ def s3_update():
 
 
 def complete_update():
-	q.delete_message(am)
-	am.get_body()
-	print "Message deleted from queue"
+	if am:
+		q.delete_message(am)
+		am.get_body()
+		print "Message deleted from queue"
 	return
 	
 if __name__ == "__main__":
