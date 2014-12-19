@@ -5,3 +5,4 @@ autostart=true
 autorestart=true
 redirect_stderr=true
 stdout_logfile=/var/log/skynet/supervisord.log
+stderr_logfile=/var/log/skynet/supervisord.log
