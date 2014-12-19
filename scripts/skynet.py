@@ -237,6 +237,9 @@ def decider():
 			thr7.start()
 		thr5 = Thread(target=complete_update)
 		thr5.start()
+		thr5.join(10)
+		if original:
+			thr7.join(15)		
 		subprocess.call('service supervisord restart', shell=True)
 		return
 	if 'action' in rmsg and rmsg['action'] == 'code-update':
