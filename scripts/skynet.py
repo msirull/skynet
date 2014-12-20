@@ -13,9 +13,9 @@ iid = get_instance_metadata()['instance-id']
 ## GET TAGS
 ec2_conn = EC2Connection()
 
-reservations = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
-instance = reservations[0].instances[0]
-tags = instance.tags
+my_reservation = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
+myself = my_reservation[0].instances[0]
+tags = myself.tags
 
 ## BAD VARIABLES: These variables need to not be hard-coded
 services = ["nginx", "php-fpm-5.5"] # This one should come from the CloudFormation template
@@ -32,9 +32,6 @@ sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
 cth = ""
 skynet_source="https://raw.githubusercontent.com/msirull/skynet/master/scripts/skynet.py"
-reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
-instances = [i for r in reservations for i in r.instances]
-ips = [i.ip_address for i in instances]
 q = sqs_conn.get_queue(sqs_maint)
 msg_src = ""
 msg_type = ""
@@ -43,6 +40,9 @@ omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
 
 ## Filter Group IPs for local addresses only
+reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
+instances = [i for r in reservations for i in r.instances]
+ips = [i.private_ip_address for i in instances]
 ips = filter(None, ips)
 for ip in ips:
 	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.') or None:
@@ -99,15 +99,13 @@ def git_verify():
 	# Notify maintenance group
 def out_notify():
 	print "notifying the hoard"
-	print ips
-	if ips == "":
-		print "Nothing to do, no other hosts, see:" + ips
+	if ips == []:
+		print "Nothing to do, no other hosts, see: %s" %ips
 		return
 	else:
-		print "Sending notifications to %s" %ips
 		for ip in ips:		
 			url = "http://%s/notify" % ip
-			print url
+			print "Sending notification to %s" %url
 			data = nmsg
 			#headers = { 'content-type' : 'application/json' }
 			req = urllib2.Request(url, data, headers)
