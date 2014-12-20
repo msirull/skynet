@@ -113,6 +113,8 @@ def out_notify(msg):
 @app.route('/notify', methods = ['POST'])
 def in_notify():
 	print "Message received from leader"
+	global original
+	original = None
 	global omsg
 	omsg = request.data
 	rmsg = json.loads(omsg)
