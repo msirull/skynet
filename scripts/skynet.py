@@ -43,11 +43,12 @@ repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
 reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
 instances = [i for r in reservations for i in r.instances]
 ips = [i.private_ip_address for i in instances]
+print ips
 ips = filter(None, ips)
 for ip in ips:
 	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.') or myself.private_ip_address or None:
 		ips.remove(ip)
-
+print ips
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
 	# Store Request
@@ -108,7 +109,6 @@ def out_notify(msg):
 			print "Sending notification to %s" %url
 			#headers = { 'content-type' : 'application/json' }
 			req = urllib2.Request(url, msg, headers)
-			print req
 			response = urllib2.urlopen(req)
 			print response.read()
 			print "success!"
@@ -116,6 +116,7 @@ def out_notify(msg):
 
 @app.route('/notify', methods = ['POST'])
 def in_notify():
+	print "Message received from leader"
 	global omsg
 	omsg = request.data
 	rmsg = json.loads(omsg)
