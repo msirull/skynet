@@ -56,8 +56,6 @@ def ext_inbound():
 	global headers
 	headers = request.headers
 	print headers
-	global am
-	am = None
 	global original
 	original = True
 	# Validate sender
@@ -233,14 +231,8 @@ def decider():
 		subprocess.call('/etc/skynet/setup.sh', shell=True)
 		print "Assimilation Successful"
 		if original:
-			thr7 = Thread(target=out_notify)
-			thr7.start()
-		thr5 = Thread(target=complete_update)
-		thr5.start()
-		thr5.join(10)
-		if original:
-			thr7.join(15)		
-		subprocess.call('service supervisord restart', shell=True)
+			out_notify()
+		complete_update()	
 		return
 	if 'action' in rmsg and rmsg['action'] == 'code-update':
 		thr3 = Thread(target=s3_update)
@@ -325,7 +317,7 @@ def complete_update():
 	except NameError:
 		am = None
 	else:
-		am = am
+		pass
 	if am:	
 		q.delete_message(am)
 		am.get_body()

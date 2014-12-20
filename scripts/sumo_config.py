@@ -53,7 +53,7 @@ sourceconfig["sources"][2]["name"] = "CloudFormation Command Logs"
 sourceconfig["sources"][2]["pathExpression"] = "/var/log/cfn-init-cmd.log"
 sourceconfig["sources"][2]["category"] = "deployment"
 sourceconfig["sources"][2]["timeZone"] = "UTC"
-    # Cloudformation Command Source
+    # Nginx Source
 sourceconfig["sources"].append({})
 sourceconfig["sources"][3]["sourceType"] = "LocalFile"
 sourceconfig["sources"][3]["name"] = "Nginx Logs"
