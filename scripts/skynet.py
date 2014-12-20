@@ -178,14 +178,15 @@ def code_update():
 	
 def wait():
 	print "Waiting..."
-	time.sleep(2)
+	time.sleep(5)
 	while True:
 		count=q.count()
 		if count > 10:
 			num=10
 		else:
 			num=count
-		rs = q.get_messages(num_messages=num, attributes='All', message_attributes=['instance-id'])
+		if count != 0:
+			rs = q.get_messages(num_messages=num, attributes='All', message_attributes=['instance-id'])
 		oldest_date = 99999999999999999 
 		for i in range(num):
 			timestamp=int(rs[i].attributes['SentTimestamp'])
