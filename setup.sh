@@ -15,4 +15,3 @@ cp $dir/generic_config/supervisord /etc/rc.d/init.d
 chmod +x /etc/rc.d/init.d/supervisord
 cp $dir/generic_config/skynet.supervisor /etc/config
 cp $dir/scripts/skynet.py /etc/config/skynet_main.py
-kill -HUP `head -1 /etc/config/skynet.pid`

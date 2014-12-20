@@ -229,6 +229,7 @@ def decider():
 		git.Repo.clone_from("https://github.com/msirull/skynet", "/etc/skynet")
 		os.chmod("/etc/skynet/setup.sh", 0775)
 		subprocess.call('/etc/skynet/setup.sh', shell=True)
+		subprocess.call('kill -HUP `head -1 /etc/config/skynet.pid`', shell=True)
 		print "Assimilation Successful"
 		if original:
 			out_notify()
