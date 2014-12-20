@@ -104,7 +104,7 @@ def out_notify(msg):
 			url = "http://%s:1666/notify" % i
 			print "Sending notification to %s" %url
 			#headers = { 'content-type' : 'application/json' }
-			req = urllib2.Request('POST', url, msg, headers)
+			req = urllib2.Request(url, msg, headers)
 			response = urllib2.urlopen(req)
 			print response.read()
 			print "success!"
