@@ -45,7 +45,7 @@ instances = [i for r in reservations for i in r.instances]
 ips = [i.private_ip_address for i in instances]
 ips = filter(None, ips)
 for ip in ips:
-	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.') or None:
+	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.') or myself.private_ip_address or None:
 		ips.remove(ip)
 
 @app.route('/update', methods = ['POST'])
@@ -97,7 +97,7 @@ def git_verify():
 
 
 	# Notify maintenance group
-def out_notify():
+def out_notify(msg):
 	print "notifying the hoard"
 	if ips == []:
 		print "Nothing to do, no other hosts, see: %s" %ips
@@ -106,9 +106,8 @@ def out_notify():
 		for ip in ips:		
 			url = "http://%s/notify" % ip
 			print "Sending notification to %s" %url
-			data = nmsg
 			#headers = { 'content-type' : 'application/json' }
-			req = urllib2.Request(url, data, headers)
+			req = urllib2.Request(url, msg, headers)
 			print req
 			response = urllib2.urlopen(req)
 			print response.read()
@@ -232,7 +231,7 @@ def decider():
 		subprocess.call('kill -HUP `head -1 /etc/config/skynet.pid`', shell=True)
 		print "Assimilation Successful"
 		if original:
-			out_notify()
+			out_notify(omsg)
 		complete_update()	
 		return
 	if 'action' in rmsg and rmsg['action'] == 'code-update':
