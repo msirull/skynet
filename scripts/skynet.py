@@ -314,10 +314,8 @@ def complete_update():
 	try:
 		am
 	except NameError:
-		am = None
-	else:
 		pass
-	if am:	
+	else:
 		q.delete_message(am)
 		am.get_body()
 		print "Message deleted from queue"
