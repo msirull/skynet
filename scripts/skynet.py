@@ -46,8 +46,9 @@ ips = [i.private_ip_address for i in instances]
 print ips
 ips = filter(None, ips)
 for ip in ips:
-	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.') or myself.private_ip_address or None:
+	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.'):
 		ips.remove(ip)
+ips= filter(myself.private_ip_address, ips)
 print ips
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
