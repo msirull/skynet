@@ -43,9 +43,6 @@ reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tag
 instances = [i for r in reservations for i in r.instances]
 ips = [i.private_ip_address for i in instances]
 ips = filter(None, ips)
-for i in ips:
-	if not i.startswith('192.168') or i.startswith('172.') or i.startswith('10.'):
-		ips.remove(i)
 while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
 
 @app.route('/update', methods = ['POST'])
@@ -103,8 +100,8 @@ def out_notify(msg):
 		print "Nothing to do, no other hosts, see: %s" %ips
 		return
 	else:
-		for ip in ips:		
-			url = "http://%s/notify" % ip
+		for i in ips:		
+			url = "http://%s/notify" % i
 			print "Sending notification to %s" %url
 			#headers = { 'content-type' : 'application/json' }
 			req = urllib2.Request(url, msg, headers)
