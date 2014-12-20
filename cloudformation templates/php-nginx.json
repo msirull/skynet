@@ -843,10 +843,6 @@
             "-c 'NginxPHP' ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"\n",
-			" - usermod -a -G www ec2-user\n",
-			" - usermod -a -G www apache\n",
-			" - chown -R root:www /var/www/html\n",
-			" - chmod 2775 /var/www/html\n",
             " - /opt/aws/bin/cfn-signal -e $? ",
             "--stack ", { "Ref" : "AWS::StackName" },
             " --resource apiASG ",
@@ -946,6 +942,14 @@
 				"groups" : {
 					"www" : {}
 				},
+				"users" : {
+					"ec2-user" : {
+						"groups" : ["www"],
+					},
+					"apache" : {
+						"groups" : ["www"]
+					}
+				},
 				"commands" : {
 					"BSetUpSkynet" : {
 						"command" : "/etc/skynet/skynet-master/setup.sh"
@@ -1019,10 +1023,6 @@
             "-c 'NginxEdge' ",
             "--region ", { "Ref" : "AWS::Region" }, "\n",
 			"\n",
-			" - usermod -a -G www ec2-user\n",
-			" - usermod -a -G www apache\n",
-			" - chown -R root:www /var/www/html\n",
-			" - chmod 2775 /var/www/html\n",
             " - /opt/aws/bin/cfn-signal -e $? ",
             "--stack ", { "Ref" : "AWS::StackName" },
             " --resource PublicASG ",
@@ -1112,6 +1112,14 @@
 				},
 				"groups" : {
 					"www" : {}
+				},
+				"users" : {
+					"ec2-user" : {
+						"groups" : ["www"],
+					},
+					"apache" : {
+						"groups" : ["www"]
+					}
 				},
 				"commands" : {
 					"BSetUpSkynet" : {
