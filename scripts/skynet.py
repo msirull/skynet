@@ -177,6 +177,7 @@ def update():
 	return
 	
 def wait():
+	print "Waiting..."
 	time.sleep(2)
 	while True:
 		count=q.count()
@@ -217,10 +218,8 @@ def decider():
 		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
 		print "Config Updated!"
 		if original:
-			thr7 = Thread(target=out_notify)
-			thr7.start()
-		thr1 = Thread(target=complete_update)
-		thr1.start()
+			out_notify(omsg)
+		complete_update()
 		return
 	if 'action' in rmsg and rmsg['action'] == 'skynet-update':
 		shutil.rmtree("/etc/skynet", ignore_errors=True)
@@ -306,8 +305,7 @@ def s3_update():
 	complete_time=int(time.time())
 	duration=complete_time-ctime
 	print "Update successful! It took " + str(duration) + " seconds"
-	thr4 = Thread(target=complete_update)
-	thr4.start()
+	complete_update()
 
 
 def complete_update():
