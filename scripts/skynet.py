@@ -46,7 +46,7 @@ ips = filter(None, ips)
 while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
 
 @app.route('/update', methods = ['POST'])
-def ext_inbound():
+def update():
 	# Store Request
 	global omsg
 	omsg = request.data
@@ -80,7 +80,7 @@ def git_verify():
 				if branch == tags["branch"] and repo == tags["repo"]:
 					global nmsg
 					nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
-					thr1 = Thread(target=update)
+					thr1 = Thread(target=code_update)
 					thr1.start()
 					print "Starting Update"
 				else:
@@ -111,7 +111,7 @@ def out_notify(msg):
 	return
 
 @app.route('/notify', methods = ['POST'])
-def in_notify():
+def notify():
 	print "Message received from leader"
 	global original
 	original = None
@@ -141,7 +141,7 @@ def recursive_move(src, dst):
 			if e.errno == errno.ENOTDIR:
 				shutil.move(src+f, dst+f)
 
-def update():
+def code_update():
 	# Start update process
 	currenttime=str(int(time.time()))
 	regulartime=(datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
