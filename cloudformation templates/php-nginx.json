@@ -944,7 +944,7 @@
 				},
 				"users" : {
 					"ec2-user" : {
-						"groups" : ["www"],
+						"groups" : ["www"]
 					},
 					"apache" : {
 						"groups" : ["www"]
@@ -1115,7 +1115,7 @@
 				},
 				"users" : {
 					"ec2-user" : {
-						"groups" : ["www"],
+						"groups" : ["www"]
 					},
 					"apache" : {
 						"groups" : ["www"]

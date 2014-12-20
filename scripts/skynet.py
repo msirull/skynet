@@ -99,11 +99,13 @@ def git_verify():
 	# Notify maintenance group
 def out_notify():
 	print "notifying the hoard"
+	print ips
 	if ips == "":
 		print "Nothing to do, no other hosts, see:" + ips
 		return
 	else:
-		for ip in ips:
+		print "Sending notifications to %s" %ips
+		for ip in ips:		
 			url = "http://%s/notify" % ip
 			print url
 			data = nmsg
