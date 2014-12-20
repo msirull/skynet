@@ -27,7 +27,6 @@ sqs_maint=tags['maintenance-queue'] # Also from CF Template
 
 ## Global Variables
 region = get_instance_metadata()['placement']['availability-zone'][:-1]
-ec2_conn = boto.ec2.connect_to_region(region)
 sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
 cth = ""
@@ -43,13 +42,12 @@ repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
 reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
 instances = [i for r in reservations for i in r.instances]
 ips = [i.private_ip_address for i in instances]
-print ips
 ips = filter(None, ips)
-for ip in ips:
-	if not ip.startswith('192.168') or ip.startswith('172.') or ip.startswith('10.'):
-		ips.remove(ip)
-ips= filter(myself.private_ip_address, ips)
-print ips
+for i in ips:
+	if not i.startswith('192.168') or i.startswith('172.') or i.startswith('10.'):
+		ips.remove(i)
+while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
+
 @app.route('/update', methods = ['POST'])
 def ext_inbound():
 	# Store Request
