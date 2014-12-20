@@ -2,7 +2,7 @@ from flask import Flask, request, current_app
 from threading import Thread
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
-import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hmac, os, errno, git
+import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hmac, os, errno, git, urllib
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 from boto.ec2 import EC2Connection
@@ -101,10 +101,10 @@ def out_notify(msg):
 		return
 	else:
 		for i in ips:		
-			url = "http://%s/notify" % i
+			url = "http://%s:1666/notify" % i
 			print "Sending notification to %s" %url
 			#headers = { 'content-type' : 'application/json' }
-			req = urllib2.Request(url, msg, headers)
+			req = urllib2.Request('POST', url, msg, headers)
 			response = urllib2.urlopen(req)
 			print response.read()
 			print "success!"
