@@ -2,18 +2,19 @@ from flask import Flask, request, current_app
 from threading import Thread
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
-import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hmac, os, errno, git, urllib
+import boto.sqs, boto.ec2, urllib2, subprocess, shutil, time, json, datetime, hmac, os, errno, git
 from hashlib import sha1
 from boto.s3.connection import S3Connection
-from boto.ec2 import EC2Connection
-
+import boto.ec2
 
 app = Flask(__name__)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
-ec2_conn = EC2Connection()
 
-my_reservation = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
+region = get_instance_metadata()['placement']['availability-zone'][:-1]
+ec2_conn = boto.ec2.connect_to_region(region)
+
+my_reservation = ec2_conn.get_all_reservations(instance_ids='%s' %iid)
 myself = my_reservation[0].instances[0]
 tags = myself.tags
 
@@ -96,7 +97,7 @@ def git_verify():
 	# Notify maintenance group
 def out_notify(msg):
 	print "notifying the hoard"
-	if ips == []:
+	if not ips:
 		print "Nothing to do, no other hosts, see: %s" %ips
 		return
 	else:
@@ -117,9 +118,8 @@ def notify():
 	original = None
 	global omsg
 	omsg = request.data
-	rmsg = json.loads(omsg)
 	# Get in line
-	msg_src = "test inline message source"
+	msg_src = "Needs to forward header info"
 	m = RawMessage()
 	m.message_attributes = {
 						"instance-id":{"data_type": "String", "string_value": iid},
@@ -188,28 +188,30 @@ def wait():
 		if count != 0:
 			rs = q.get_messages(num_messages=num, attributes='All', message_attributes=['instance-id'])
 		oldest_date = 99999999999999999 
-		for i in range(num):
-			timestamp=int(rs[i].attributes['SentTimestamp'])
-			miid=rs[i].message_attributes['instance-id']['string_value']
+		for n in range(num):
+			timestamp=int(rs[n].attributes['SentTimestamp'])
+			miid=rs[n].message_attributes['instance-id']['string_value']
+			## Checks to see who is first
 			if timestamp < oldest_date:
-				cth=miid
-				cmp=rs[i].get_body()
+				firstiid=miid
+				cmsg=rs[n].get_body()
 				oldest_date = timestamp
-		try:
-			cmp
-		except NameError:
-			cmp=omsg
-		try:
-			cth
-		except NameError:
-			cth=""
-		if cth == iid:
-			global am
-			am=rs[i]
-			print "I'm going to start updating now because it's my turn"		
-			print "And here's what I'm going to do: " + cmp
+				try:
+					cmsg
+				except NameError:
+					cmsg=omsg
+				try:
+					firstiid
+					global msgid
+					msgid=rs[n]
+				except NameError:
+					firstiid=""
+		## If first, start updating
+		if firstiid == iid:
+			print "I'm going to start updating now because it's my turn"
+			print "And here's what I'm going to do: " + cmsg
 			thr6 = Thread(target=decider)
-			thr6.start() 
+			thr6.start()
 			return
 		else:
 			print "I'm in the queue! My message was " + omsg + " and so are " + str(count) + " other people"
@@ -311,12 +313,12 @@ def s3_update():
 
 def complete_update():
 	try:
-		am
+		msgid
 	except NameError:
 		pass
 	else:
-		q.delete_message(am)
-		am.get_body()
+		q.delete_message(msgid)
+		msgid.get_body()
 		print "Message deleted from queue"
 	return
 	

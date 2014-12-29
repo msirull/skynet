@@ -1,11 +1,12 @@
 from boto.dynamodb2.table import Table
 import json, os, subprocess
 from boto.utils import get_instance_metadata
-from boto.ec2 import EC2Connection
-ec2_conn = EC2Connection()
+import boto.ec2
+region = get_instance_metadata()['placement']['availability-zone'][:-1]
+ec2_conn = boto.ec2.connect_to_region(region)
 
 iid = get_instance_metadata()['instance-id']
-reservations = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
+reservations = ec2_conn.get_all_reservations(instance_ids='%s' %iid)
 instance = reservations[0].instances[0]
 tags= instance.tags
 # Add default endpoint locations into Nginx

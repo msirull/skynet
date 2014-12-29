@@ -2,14 +2,16 @@ import json, os, subprocess
 from boto.s3.connection import S3Connection
 from boto.utils import get_instance_metadata
 from boto.cloudformation import CloudFormationConnection
-from boto.ec2 import EC2Connection
+import boto.ec2
 
-ec2_conn = EC2Connection()
+region = get_instance_metadata()['placement']['availability-zone'][:-1]
+
+ec2_conn = boto.ec2.connect_to_region(region)
 cf_conn=CloudFormationConnection()
 s3_conn = S3Connection()
 
 iid = get_instance_metadata()['instance-id']
-reservations = ec2_conn.get_all_instances(filters={'instance-id': '%s' %iid})
+reservations = ec2_conn.get_all_reservations(instance_ids='%s' %iid)
 instance = reservations[0].instances[0]
 tags= instance.tags
 

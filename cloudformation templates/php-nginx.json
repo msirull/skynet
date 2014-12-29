@@ -1053,7 +1053,7 @@
 					},
 					  "rpm" : {
 						  "sumo" : "https://collectors.sumologic.com/rest/download/rpm/64"
-					  }	
+					  }
 				},
 				"files" : {
 					"/temp/test.txt" : {
