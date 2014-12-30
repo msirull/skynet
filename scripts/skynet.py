@@ -46,7 +46,7 @@ ips = [i.private_ip_address for i in instances]
 ips = filter(None, ips)
 while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
 
-@app.route('/update', methods = ['POST'])
+@app.route('/update/', methods = ['POST'])
 def update():
 	# Store Request
 	global omsg
@@ -111,7 +111,7 @@ def out_notify(msg):
 			print "success!"
 	return
 
-@app.route('/notify', methods = ['POST'])
+@app.route('/notify/', methods = ['POST'])
 def notify():
 	print "Message received from leader"
 	global original
