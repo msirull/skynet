@@ -37,7 +37,7 @@ msg_src = ""
 msg_type = ""
 work_dir="/etc/app/"
 omsg = ""
-repo_bucket_obj = s3_conn.get_bucket(repo_bucket)
+repo_bucket_obj = s3_conn.get_bucket(repo_bucket, validate=False)
 
 ## Filter Group IPs for local addresses only
 reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
