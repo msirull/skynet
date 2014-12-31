@@ -40,11 +40,7 @@ omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket, validate=False)
 
 ## Filter Group IPs for local addresses only
-reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
-instances = [i for r in reservations for i in r.instances]
-ips = [i.private_ip_address for i in instances]
-ips = filter(None, ips)
-while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
+
 
 @app.route('/update/', methods = ['POST'])
 def update():
@@ -97,6 +93,12 @@ def git_verify():
 	# Notify maintenance group
 def out_notify(msg):
 	print "notifying the hoard"
+	reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
+	instances = [i for r in reservations for i in r.instances]
+	ips = [i.private_ip_address for i in instances]
+	ips = filter(None, ips)
+	while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
+
 	if not ips:
 		print "Nothing to do, no other hosts, see: %s" %ips
 		return

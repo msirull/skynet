@@ -8,6 +8,6 @@ branch=`echo $tags | jq -r '.branch'`
 repo=`echo $tags | jq -r '.repo'`
 dir="/etc/app/"
 git config —global user.name "$iid"
-git config —global user.email "support@cloudnineit.com"
+git config —global user.email "dev@sirull.com"
 git clone git@github.com:msirull/$repo.git $dir
 cp $dir* /var/www/html/
