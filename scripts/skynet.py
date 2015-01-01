@@ -18,15 +18,15 @@ my_reservation = ec2_conn.get_all_reservations(instance_ids='%s' %iid)
 myself = my_reservation[0].instances[0]
 tags = myself.tags
 
-## BAD VARIABLES: These variables need to not be hard-coded
+## BAD NAME ASSIGNMENTS
 services = ["nginx", "php-fpm-5.5"] # This one should come from the CloudFormation template
 webroot="/var/www/html/" # This one is bad because I think it needs to be retrieved from the CF template
 repo_bucket="code-staging" # Also from CF Template
 gittoken='w3rQ2Q4KK7Wm73ANqg' # Not sure what to do here. Dynamo?
 sqs_maint=tags['maintenance-queue'] # Also from CF Template
-## END BAD VARIABLES
+## END BAD STUFF
 
-## Global Variables
+## Global Namespace
 region = get_instance_metadata()['placement']['availability-zone'][:-1]
 sqs_conn = boto.sqs.connect_to_region(region)
 s3_conn = S3Connection()
@@ -261,7 +261,7 @@ def update():
 	preupdate=PreUpdater()
 	status=preupdate.queue(msg, headers)
 	decision=preupdate.decider(msg, headers)
-	result=decision(msg, headers)
+	result=decision()
 	if result == "success":
 		out_notify(msg, headers)
 		complete_update()
