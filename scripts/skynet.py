@@ -255,10 +255,12 @@ def update():
 	msg = request.data
 	headers = request.headers
 	print headers
+	print msg
 	# Validate sender
 	# What's the message say to do?
-	status=PreUpdater.queue(msg, headers)
-	decision=PreUpdater.decider(msg, headers)
+	preupdate=PreUpdater()
+	status=preupdate.queue(msg, headers)
+	decision=preupdate.decider(msg, headers)
 	result=decision(msg, headers)
 	if result == "success":
 		out_notify(msg, headers)
