@@ -29,7 +29,7 @@ sqs_maint=tags['maintenance-queue'] # Also from CF Template
 ## Global Namespace
 region = get_instance_metadata()['placement']['availability-zone'][:-1]
 sqs_conn = boto.sqs.connect_to_region(region)
-s3_conn = S3Connection()
+s3_conn = boto.s3.connect_to_region(region)
 cth = ""
 skynet_source="https://raw.githubusercontent.com/msirull/skynet/master/scripts/skynet.py"
 q = sqs_conn.get_queue(sqs_maint)
