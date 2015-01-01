@@ -39,7 +39,55 @@ work_dir="/etc/app/"
 omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket, validate=False)
 
-## Filter Group IPs for local addresses only
+@app.route('/update', methods = ['POST'])
+def update():
+	msg = request.data
+	headers = request.headers
+	print headers
+	print msg
+	# Validate sender
+	# What's the message say to do?
+	preupdate=PreUpdater()
+	status=preupdate.queue(msg, headers)
+	decision=preupdate.decider(msg, headers)
+	result=decision()
+	if result == "success":
+		complete_update()
+		out_notify(msg, headers)
+	return "Thank You"
+
+	# Notify maintenance group
+def out_notify(msg, headers):
+	print "notifying the hoard"
+	reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
+	instances = [i for r in reservations for i in r.instances]
+	ips = [i.private_ip_address for i in instances]
+	ips = filter(None, ips)
+	while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
+
+	if not ips:
+		print "Nothing to do, no other hosts, see: %s" %ips
+		return
+	else:
+		for i in ips:
+			url = "http://%s:1666/notify" % i
+			print "Sending notification to %s" %url
+			#headers = { 'content-type' : 'application/json' }
+			req = urllib2.Request(url, msg, headers)
+			response = urllib2.urlopen(req)
+			print response.read()
+			print "success!"
+	return
+
+@app.route('/notify', methods = ['POST'])
+def notify():
+	print "Message received from leader"
+	global original
+	original = None
+	PreUpdater.queue(request.data, request.headers)
+	complete_update()
+	return "Message Received"
+
 class PreUpdater():
 	def __init__(self):
 		pass
@@ -249,55 +297,6 @@ class Update():
 		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
 		print "Config Updated!"
 		return "success"
-
-@app.route('/update', methods = ['POST'])
-def update():
-	msg = request.data
-	headers = request.headers
-	print headers
-	print msg
-	# Validate sender
-	# What's the message say to do?
-	preupdate=PreUpdater()
-	status=preupdate.queue(msg, headers)
-	decision=preupdate.decider(msg, headers)
-	result=decision()
-	if result == "success":
-		out_notify(msg, headers)
-		complete_update()
-	return "Thank You"
-
-	# Notify maintenance group
-def out_notify(msg, headers):
-	print "notifying the hoard"
-	reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
-	instances = [i for r in reservations for i in r.instances]
-	ips = [i.private_ip_address for i in instances]
-	ips = filter(None, ips)
-	while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
-
-	if not ips:
-		print "Nothing to do, no other hosts, see: %s" %ips
-		return
-	else:
-		for i in ips:		
-			url = "http://%s:1666/notify" % i
-			print "Sending notification to %s" %url
-			#headers = { 'content-type' : 'application/json' }
-			req = urllib2.Request(url, msg, headers)
-			response = urllib2.urlopen(req)
-			print response.read()
-			print "success!"
-	return
-
-@app.route('/notify', methods = ['POST'])
-def notify():
-	print "Message received from leader"
-	global original
-	original = None
-	PreUpdater.queue(request.data, request.headers)
-	complete_update()
-	return "Message Received"
 
 def recursive_move(src, dst):
 	source = os.listdir(src)
