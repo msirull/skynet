@@ -94,20 +94,21 @@ class PreUpdater():
         if 'action' in rmsg and rmsg['action'] == 'config-update':
             logging.info("Triggering config update")
             return update_action.config_update
-        if 'action' in rmsg and rmsg['action'] == 'skynet-update':
+        elif 'action' in rmsg and rmsg['action'] == 'skynet-update':
             logging.info("Triggering Skynet update")
             return update_action.skynet_update
-        if 'action' in rmsg and rmsg['action'] == 'code-update':
+        elif 'action' in rmsg and rmsg['action'] == 'code-update':
             logging.info("Triggering code update")
             return update_action.s3_update
-        if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
+        elif 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
             logging.info("OK you *say* you're from Github, but let's check your signature...")
             verification=self.git_verify(rmsg, headers)
             if verification == "verified":
                 return update_action.code_update
         # If nothing matches
-        logging.info("Not a recognized notification")
-        return "I don't what's going on here"
+        else:
+            logging.info("Not a recognized notification")
+            return "failure"
 
     def git_verify(self, rmsg, headers):
         if 'X-Hub-Signature' in headers:
