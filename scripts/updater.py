@@ -1,4 +1,3 @@
-from threading import Thread
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
 import boto.sqs, boto.ec2, subprocess, shutil, time, json, datetime, hmac, os, errno, git, logging
@@ -12,7 +11,7 @@ iid = get_instance_metadata()['instance-id']
 region = get_instance_metadata()['placement']['availability-zone'][:-1]
 ec2_conn = boto.ec2.connect_to_region(region)
 
-my_reservation = ec2_conn.get_all_reservations(instance_ids='%s' %iid)
+my_reservation = ec2_conn.get_all_reservations(instance_ids=iid)
 myself = my_reservation[0].instances[0]
 tags = myself.tags
 
@@ -34,7 +33,6 @@ q = sqs_conn.get_queue(sqs_maint)
 msg_src = ""
 msg_type = ""
 work_dir="/etc/app/"
-omsg = ""
 repo_bucket_obj = s3_conn.get_bucket(repo_bucket, validate=False)
 
 class PreUpdater():
@@ -54,6 +52,8 @@ class PreUpdater():
             time.sleep(5)
             count=q.count()
             logging.info(count)
+            firstiid=""
+            cmsg=""
             if count > 10:
                 num=10
             else:
@@ -72,26 +72,18 @@ class PreUpdater():
                         cmsg=rs[n].get_body()
                         oldest_date = timestamp
                         logging.info(oldest_date)
-                        try:
-                            cmsg
-                        except NameError:
-                            cmsg=omsg
-                        try:
-                            firstiid
-                            global msgid
-                            msgid=rs[n]
-                        except NameError:
-                            firstiid=""
+                        global msgid
+                        msgid=rs[n]
             ## If first, start updating
-            if firstiid == iid and cmsg == msg:
-                logging.info(firstiid)
-                logging.info(msgid)
-                logging.info("I'm going to start updating now because it's my turn")
-                logging.info("And here's what I'm going to do: %s", cmsg)
-                return "ready"
-            else:
-                msgcount=str(count)
-                logging.info("I'm in the queue! My message was %s and so are %s other people", omsg, msgcount)
+                if firstiid == iid and cmsg == msg:
+                    logging.info(firstiid)
+                    logging.info(msgid)
+                    logging.info("I'm going to start updating now because it's my turn")
+                    logging.info("And here's what I'm going to do: %s", cmsg)
+                    return "ready"
+                else:
+                    msgcount=str(count)
+                    logging.info("I'm in the queue! My message was %s and so are %s other people", msg, msgcount)
 
     def decider(self, msg, headers):
         rmsg = json.loads(msg)
@@ -107,7 +99,7 @@ class PreUpdater():
             return update_action.s3_update
         elif 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
             logging.info("OK you *say* you're from Github, but let's check your signature...")
-            verification=self.git_verify(rmsg, headers)
+            verification=self.git_verify(msg, headers)
             if verification == "verified":
                 return update_action.code_update
         # If nothing matches
@@ -116,10 +108,11 @@ class PreUpdater():
             return "none"
 
     def git_verify(self, rmsg, headers):
+        msg = json.dumps(rmsg)
         if 'X-Hub-Signature' in headers:
-            signature = "sha1="+hmac.new(gittoken, omsg, sha1).hexdigest()
+            signature = "sha1="+hmac.new(gittoken, msg, sha1).hexdigest()
             logging.debug(signature)
-            # The signature isn't working right now, so I'm going to skip validation
+            # The signature verification isn't working right now, so I'm going to skip validation
             # if headers['X-Hub-Signature'] == signature:
             if signature == signature:
                 logging.info("Github Identity Confirmed")

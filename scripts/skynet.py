@@ -11,18 +11,9 @@ iid = get_instance_metadata()['instance-id']
 region = get_instance_metadata()['placement']['availability-zone'][:-1]
 ec2_conn = boto.ec2.connect_to_region(region)
 
-my_reservation = ec2_conn.get_all_reservations(instance_ids='%s' %iid)
+my_reservation = ec2_conn.get_all_reservations(instance_ids=iid)
 myself = my_reservation[0].instances[0]
 tags = myself.tags
-
-
-## Global Namespace
-cth = ""
-skynet_source="https://raw.githubusercontent.com/msirull/skynet/master/scripts/skynet.py"
-msg_src = ""
-msg_type = ""
-work_dir="/etc/app/"
-omsg = ""
 
 @app.route('/update', methods = ['POST'])
 def update():
