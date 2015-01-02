@@ -5,7 +5,7 @@ import boto.sqs, boto.ec2, subprocess, shutil, time, json, datetime, hmac, os, e
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 import boto.ec2
-logging.basicConfig(filename='/var/log/skynet/skynet.log',level=logging.DEBUG)
+logging.basicConfig(filename='/var/log/skynet/skynet.log',level=logging.INFO)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
 
@@ -53,7 +53,7 @@ class PreUpdater():
         while True:
             time.sleep(5)
             count=q.count()
-            logging.debug(count)
+            logging.info(count)
             if count > 10:
                 num=10
             else:
@@ -63,15 +63,15 @@ class PreUpdater():
                 oldest_date = 99999999999999999
                 for n in range(num):
                     timestamp=int(rs[n].attributes['SentTimestamp'])
-                    logging.debug(timestamp)
+                    logging.info(timestamp)
                     miid=rs[n].message_attributes['instance-id']['string_value']
-                    logging.debug(miid)
+                    logging.info(miid)
                     ## Checks to see who is first
                     if timestamp < oldest_date:
                         firstiid=miid
                         cmsg=rs[n].get_body()
                         oldest_date = timestamp
-                        logging.debug(oldest_date)
+                        logging.info(oldest_date)
                         try:
                             cmsg
                         except NameError:
@@ -84,8 +84,8 @@ class PreUpdater():
                             firstiid=""
             ## If first, start updating
             if firstiid == iid and cmsg == msg:
-                logging.debug(firstiid)
-                logging.debug(msgid)
+                logging.info(firstiid)
+                logging.info(msgid)
                 logging.info("I'm going to start updating now because it's my turn")
                 logging.info("And here's what I'm going to do: %s", cmsg)
                 return "ready"
