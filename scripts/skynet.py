@@ -1,6 +1,6 @@
 from flask import Flask, request
 from boto.utils import get_instance_metadata
-import boto.ec2, boto.ec2, urllib2, shutil, os, errno, updater, logging
+import boto.ec2, boto.ec2, urllib2, shutil, os, errno, updater, logging, time
 logging.basicConfig(filename='/var/log/skynet/skynet.log',level=logging.INFO)
 
 app = Flask(__name__)
@@ -25,6 +25,8 @@ omsg = ""
 
 @app.route('/update', methods = ['POST'])
 def update():
+	currenttime=str(int(time.time()))
+	logging.info("Message received at %s", currenttime)
 	msg = request.data
 	headers = request.headers
 	logging.debug(headers)
@@ -66,7 +68,8 @@ def out_notify(msg, headers):
 
 @app.route('/notify', methods = ['POST'])
 def notify():
-	logging.info("Message received from leader")
+	currenttime=str(int(time.time()))
+	logging.info("Message received from leader at %s", currenttime)
 	global original
 	original = None
 	preupdate2=updater.PreUpdater()

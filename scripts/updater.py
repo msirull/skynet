@@ -140,8 +140,7 @@ class Update():
 		pass
 	def code_update(self):
 		# Start update process
-		currenttime=str(int(time.time()))
-		regulartime=(datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
+		regulartime=(datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
 		logging.info("starting update process at "+regulartime)
 		shutil.rmtree(work_dir, ignore_errors=True)
 		subprocess.call('git clone git@github.com:msirull/'+ repo +'.git '+ work_dir, shell=True)
