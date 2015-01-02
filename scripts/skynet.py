@@ -41,7 +41,7 @@ def update():
 		updater.complete_update()
 		out_notify(msg, headers)
 	logging.info("Update completed successfully")
-	return "Thank You"
+	return "Success"
 
 	# Notify maintenance group
 def out_notify(msg, headers):
@@ -73,7 +73,9 @@ def notify():
 	global original
 	original = None
 	preupdate2=updater.PreUpdater()
-	preupdate2.queue(request.data, request.headers)
+	status=preupdate2.queue(request.data, request.headers)
+	decision=preupdate2.decider(request.data, request.headers)
+	result=decision()
 	updater.complete_update()
 	return "Message Received"
 
