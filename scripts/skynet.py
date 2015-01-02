@@ -34,8 +34,8 @@ def update():
 	logging.debug(msg)
 	# Validate sender
 	# What's the message say to do?
-	thread = Thread(target = update_main)
-	result = thread.start(msg, headers, True)
+	thread = Thread(target = update_main, args=(request.data, request.headers, True))
+	result = thread.start()
 	return "Message Received"
 
 
@@ -65,8 +65,8 @@ def out_notify(msg, headers):
 def notify():
 	regulartime=(datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
 	logging.info("Message received from leader at %s", regulartime)
-	thread = Thread(target = update_main)
-	result = thread.start(request.data, request.headers, True)
+	thread = Thread(target = update_main, args=(request.data, request.headers))
+	result = thread.start()
 	return "Message Received"
 
 def update_main(msg, headers, original):
