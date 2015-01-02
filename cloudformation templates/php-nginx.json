@@ -873,9 +873,6 @@
   						"gunicorn" : [],
   						"supervisor" : []
 					    
-					  },
-					  "rpm" : {
-						  "sumo" : "https://collectors.sumologic.com/rest/download/rpm/64"
 					  }
 				  },
 				"files" : {
@@ -1050,10 +1047,7 @@
 						"flask" : [],
 						"gunicorn" : [],
 						"supervisor" : []
-					},
-					  "rpm" : {
-						  "sumo" : "https://collectors.sumologic.com/rest/download/rpm/64"
-					  }
+					}
 				},
 				"files" : {
 					"/temp/test.txt" : {
@@ -2084,6 +2078,27 @@
   ]
 	          },
 	          "Roles" : [{"Ref" : "ec2Role1"}]
+           }
+        },
+    "MaintenanceQueuePolicy2" :  {
+      "Type": "AWS::IAM::Policy",
+      "Properties" : {
+	          "PolicyName" : "maintenance-queue",
+	          "PolicyDocument" : {
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sqs:*"
+      ],
+      "Resource": [
+        { "Fn::GetAtt" : ["maintenanceQueue2", "Arn"] }
+      ]
+    }
+  ]
+	          },
+	          "Roles" : [{"Ref" : "ec2Role2"}]
            }
         },
     "S3RepoBucketPolicy1" :  { 
