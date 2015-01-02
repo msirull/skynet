@@ -2,7 +2,7 @@ skynet
 ======
 AWS Autonomy...going beyond automation
 
-Note: While this is feature complete, this is still in testing and has a few assumptions about my environment. If you're interested in trying it out, just shoot me an email at dev at sirull dot com. Thanks!
+Note: While this is feature complete, it has not yet been tested in production environment and has a few assumptions about my own environment. If you're interested in trying it out, I'd love help testing it. Just shoot me an email at dev at sirull dot com. Thanks!
 
 Basic Concepts:
 - Servers talk to each other to coordinate operations including: code updates, config updates, service registration, etc.
