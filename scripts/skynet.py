@@ -65,7 +65,7 @@ def out_notify(msg, headers):
 def notify():
 	regulartime=(datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
 	logging.info("Message received from leader at %s", regulartime)
-	thread = Thread(target = update_main, args=(request.data, request.headers))
+	thread = Thread(target = update_main, args=(request.data, request.headers, False))
 	result = thread.start()
 	return "Message Received"
 
