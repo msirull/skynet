@@ -73,6 +73,9 @@ def update_main(msg, headers, original):
 	preupdate=updater.PreUpdater()
 	status=preupdate.queue(msg, headers)
 	decision=preupdate.decider(msg, headers)
+	if decision == "none":
+		updater.complete_update()
+		return "failure"
 	result=decision()
 	logging.info("Update completed successfully")
 	if result == "success":

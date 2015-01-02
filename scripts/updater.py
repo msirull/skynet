@@ -108,7 +108,7 @@ class PreUpdater():
         # If nothing matches
         else:
             logging.info("Not a recognized notification")
-            return "failure"
+            return "none"
 
     def git_verify(self, rmsg, headers):
         if 'X-Hub-Signature' in headers:
