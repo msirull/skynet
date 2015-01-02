@@ -34,24 +34,10 @@ def update():
 	logging.debug(msg)
 	# Validate sender
 	# What's the message say to do?
-	thread = Thread(target = updater)
-	result = thread.start(msg, headers)
-	if result == "success":
-		out_notify(msg, headers)
+	thread = Thread(target = update_main)
+	result = thread.start(msg, headers, True)
 	return "Message Received"
 
-def updater(msg, headers):
-	preupdate=updater.PreUpdater()
-	status=preupdate.queue(msg, headers)
-	decision=preupdate.decider(msg, headers)
-	result=decision()
-	if result == "success":
-		updater.complete_update()
-	logging.info("Update completed successfully")
-	if result == "success":
-		return "success"
-	else:
-		return "failure"
 
 def out_notify(msg, headers):
 	logging.info("notifying the hoard")
@@ -79,14 +65,23 @@ def out_notify(msg, headers):
 def notify():
 	regulartime=(datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
 	logging.info("Message received from leader at %s", regulartime)
-	global original
-	original = None
-	preupdate2=updater.PreUpdater()
-	status=preupdate2.queue(request.data, request.headers)
-	decision=preupdate2.decider(request.data, request.headers)
-	result=decision()
-	updater.complete_update()
+	thread = Thread(target = update_main)
+	result = thread.start(request.data, request.headers, True)
 	return "Message Received"
+
+def update_main(msg, headers, original):
+	preupdate=updater.PreUpdater()
+	status=preupdate.queue(msg, headers)
+	decision=preupdate.decider(msg, headers)
+	result=decision()
+	logging.info("Update completed successfully")
+	if result == "success":
+		if original:
+			out_notify(msg, headers)
+		updater.complete_update()
+		return "success"
+	else:
+		return "failure"
 
 def recursive_move(src, dst):
 	source = os.listdir(src)
