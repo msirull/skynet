@@ -21,7 +21,7 @@ Benefits:
 
 Getting Started:<br>
 1) You'll need to have at least one domain in your AWS account. Just the hosted zone, nothing else.<br>
-2) Create an "endpoints" table in the region you're deploying to with a hash and range of "env" - "layer"
+2) Create an "endpoints" table in the region you're deploying to with a hash and range of "env" - "layer"<br>
 3) Create a CloudFormation stack using the php-nginx.json template.<br>
 4) It'll ask you for a few parameters. If you just want to see how it works, you can put anything into the "branch", "repo", and "env" fields. You'll just only have the phptest.php file in the web root. You don't even need a Key Pair if you don't want.<br>
 - That's it! Give it a few minutes to get everything spun up and you should be able to go to: "subdomain.zoneapex/repo/env/phptest.php" (replace "repo" and "env" with the appropriate values)
