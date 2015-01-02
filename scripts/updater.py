@@ -53,6 +53,7 @@ class PreUpdater():
         while True:
             time.sleep(5)
             count=q.count()
+            logging.debug(count)
             if count > 10:
                 num=10
             else:
@@ -62,12 +63,15 @@ class PreUpdater():
                 oldest_date = 99999999999999999
                 for n in range(num):
                     timestamp=int(rs[n].attributes['SentTimestamp'])
+                    logging.debug(timestamp)
                     miid=rs[n].message_attributes['instance-id']['string_value']
+                    logging.debug(miid)
                     ## Checks to see who is first
                     if timestamp < oldest_date:
                         firstiid=miid
                         cmsg=rs[n].get_body()
                         oldest_date = timestamp
+                        logging.debug(oldest_date)
                         try:
                             cmsg
                         except NameError:
@@ -80,6 +84,8 @@ class PreUpdater():
                             firstiid=""
             ## If first, start updating
             if firstiid == iid and cmsg == msg:
+                logging.debug(firstiid)
+                logging.debug(msgid)
                 logging.info("I'm going to start updating now because it's my turn")
                 logging.info("And here's what I'm going to do: %s", cmsg)
                 return "ready"
