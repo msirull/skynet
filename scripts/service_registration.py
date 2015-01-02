@@ -1,5 +1,4 @@
 from boto.dynamodb2.table import Table
-import json, os, subprocess
 from boto.utils import get_instance_metadata
 import boto.ec2
 region = get_instance_metadata()['placement']['availability-zone'][:-1]

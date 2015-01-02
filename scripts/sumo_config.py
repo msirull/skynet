@@ -1,5 +1,4 @@
 import json, os, subprocess
-from boto.s3.connection import S3Connection
 from boto.utils import get_instance_metadata
 import boto.cloudformation, boto.ec2, boto.s3
 
