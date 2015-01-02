@@ -81,11 +81,11 @@ class PreUpdater():
 			## If first, start updating
 			if firstiid == iid:
 				logging.info("I'm going to start updating now because it's my turn")
-				logging.info("And here's what I'm going to do: %s") %cmsg
+				logging.info("And here's what I'm going to do: %s", cmsg)
 				self.decider(cmsg, headers)
 				return "ready"
-			else:
-				logging.info("I'm in the queue! My message was " + omsg + " and so are " + str(count) + " other people")
+			else: msgcount=str(count)
+                logging.info("I'm in the queue! My message was %s and so are %s other people", omsg, msgcount)
 
 	def decider(self, msg, headers):
 		rmsg = json.loads(msg)
