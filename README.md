@@ -19,16 +19,6 @@ Benefits:
 - More rapid updates vs AMI rollouts and more cost effective, especially at scale (not paying for partial hours every update)
 - CodeDeploy requires every instance to compile its own code (I think) and uses long polling. Skynet uses push
 
-The included CloudFormation template "php-nginx" does the following:
-- Creates 2 layers: A public Reverse Proxy layer and a private "API" layer
-- The Private layer is fully ready to run PHP 5.5 compatible code with Nginx and PHP-FPM (see assumptions below)
-- Creates a public Route 53 record pointing to the RP layer
-- Layers register with DynamoDB (eventually will be distributed)
-- The RP layer will automatically load the private endpoints (from a DynamoDB endpoints table, see assumptions below)
-- Creates S3 config/repo buckets
-
-This could be easily modified to support Node, Java, etc.
-
 Getting Started:<br>
 1) You'll need to have at least one domain in your AWS account. Just the hosted zone, nothing else.<br>
 2) Create an "endpoints" table in the region you're deploying to with a hash and range of "env" - "layer"
