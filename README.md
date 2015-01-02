@@ -39,15 +39,4 @@ Getting Started:<br>
 
 At this point, you haven't accomplished much more than a standard CF Template. However, Skynet *is* running now. So if you've put a real repo and branch in your parameters, you should be able to add your SSH key into the appropriate S3 location (see below), add the webook into Github, and be off to the races.
 
-Hard-Coded Settings (things I've done not flexible, just FYI):
-- Local config files go in /etc/config
-- Skynet installs to /etc/skynet/skynet-master (based on CloudFormation template)
-
-Assumptions (things you have to do):<br>
-1) An S3 config bucket that has directories for every layer you have. So if you're using the CF template, just add folders in the S3 Bucket it creates for every layer (at least 2, one private, one public). What goes here? Service settings, Git SSH keys, etc<br>
-2) You're using Github, have set up your repo with a deployment key, and put that key in the appropriate S3 location (see above). If it has the correct extension (.pem), it should get moved into the right spot.
-
-Notes:
-- There's a similar structure as the S3 config folder structure in DynamoDB tables for configuration info. This is the preferred location over S3 json files. You'll have better control over the config information your developers will have access to, and it will be easier for them to make updates.
-- The Github SSH cloning is an unfortunate hack. The preferred method will be AWS CodeCommit when it is released (if for no other reason than because of IAM roles)
-- The CloudFormation templates are built around a public Edge/Firewall/Reverse Proxy ASG connected to your App's private ASG, because...that's the way it's supposed to work. If you don't want to do any additional work around that, the CloudFormation template provides Nginx configs that do basic proxying.
+Please check the wiki for additional information as well as all commands Skynet accepts
