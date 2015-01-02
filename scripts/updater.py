@@ -82,7 +82,6 @@ class PreUpdater():
             if firstiid == iid and cmsg == msg:
                 logging.info("I'm going to start updating now because it's my turn")
                 logging.info("And here's what I'm going to do: %s", cmsg)
-                self.decider(cmsg, headers)
                 return "ready"
             else:
                 msgcount=str(count)
