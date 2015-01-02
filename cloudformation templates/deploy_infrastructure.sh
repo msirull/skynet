@@ -2,11 +2,11 @@
 echo "Which AWS account do you have access to? dev/prod"
 read aws
 	if [ "$aws" == "dev" ]; then
-	zoneapex=$(echo "proovecloud-dev.com")
-	configbucket=$(echo "proovecloud-dev-config");
+	zoneapex=$(echo "dev.zoneapex.com")
+	configbucket=$(echo "dev-templates-bucket");
 elif [ "$aws" == "prod" ]; then
-	zoneapex=$(echo "proovecloud.com")
-	configbucket=$(echo "proovecloud-config");
+	zoneapex=$(echo "prod.zoneapex.com")
+	configbucket=$(echo "prod-templates-bucket");
 fi
 echo "Enter a sub-domain: (not FQDN)"
 read subdomain
