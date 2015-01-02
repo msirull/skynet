@@ -81,8 +81,8 @@ def update_main(msg, headers, original):
 		updater.complete_update()
 		return "success"
 	else:
-		return "failure"
 		updater.complete_update()
+		return "failure"
 
 def recursive_move(src, dst):
 	source = os.listdir(src)
