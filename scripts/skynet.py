@@ -1,6 +1,7 @@
 from flask import Flask, request
 from boto.utils import get_instance_metadata
 import boto.ec2, boto.ec2, urllib2, shutil, os, errno, updater, logging, time, datetime
+from threading import Thread
 logging.basicConfig(filename='/var/log/skynet/skynet.log',level=logging.INFO)
 
 app = Flask(__name__)
@@ -33,17 +34,25 @@ def update():
 	logging.debug(msg)
 	# Validate sender
 	# What's the message say to do?
+	thread = Thread(target = updater)
+	result = thread.start(msg, headers)
+	if result == "success":
+		out_notify(msg, headers)
+	return "Message Received"
+
+def updater(msg, headers):
 	preupdate=updater.PreUpdater()
 	status=preupdate.queue(msg, headers)
 	decision=preupdate.decider(msg, headers)
 	result=decision()
 	if result == "success":
 		updater.complete_update()
-		out_notify(msg, headers)
 	logging.info("Update completed successfully")
-	return "Success"
+	if result == "success":
+		return "success"
+	else:
+		return "failure"
 
-	# Notify maintenance group
 def out_notify(msg, headers):
 	logging.info("notifying the hoard")
 	reservations = ec2_conn.get_all_instances(filters={"tag:maintenance-group" : tags["maintenance-group"]})
