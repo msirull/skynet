@@ -51,12 +51,12 @@ def out_notify(msg, headers):
 	while myself.private_ip_address in ips: ips.remove(myself.private_ip_address)
 
 	if not ips:
-		logging.info("Nothing to do, no other hosts, see: %s") %ips
+		logging.info("Nothing to do, no other hosts, see: %s", ips)
 		return
 	else:
 		for i in ips:
 			url = "http://%s:1666/notify" % i
-			logging.info("Sending notification to %s") %url
+			logging.info("Sending notification to %s", url)
 			#headers = { 'content-type' : 'application/json' }
 			req = urllib2.Request(url, msg, headers)
 			response = urllib2.urlopen(req)
