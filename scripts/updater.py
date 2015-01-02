@@ -1,11 +1,11 @@
 from threading import Thread
 from boto.sqs.message import RawMessage
 from boto.utils import get_instance_metadata
-import boto.sqs, boto.ec2, subprocess, shutil, time, json, datetime, hmac, os, errno, git
+import boto.sqs, boto.ec2, subprocess, shutil, time, json, datetime, hmac, os, errno, git, logging
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 import boto.ec2
-
+logging.basicConfig(filename='/var/log/skynet/skynet.log',level=logging.INFO)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
 
@@ -49,7 +49,7 @@ class PreUpdater():
 							"message-source":{"data_type": "String", "string_value": msg_src}}
 		m.set_body(msg)
 		q.write(m)
-		print "Waiting..."
+		logging.info("Waiting...")
 		time.sleep(5)
 		while True:
 			count=q.count()
@@ -80,42 +80,42 @@ class PreUpdater():
 						firstiid=""
 			## If first, start updating
 			if firstiid == iid:
-				print "I'm going to start updating now because it's my turn"
-				print "And here's what I'm going to do: " + cmsg
+				logging.info("I'm going to start updating now because it's my turn")
+				logging.info("And here's what I'm going to do: %s") %cmsg
 				self.decider(cmsg, headers)
 				return "ready"
 			else:
-				print "I'm in the queue! My message was " + omsg + " and so are " + str(count) + " other people"
+				logging.info("I'm in the queue! My message was " + omsg + " and so are " + str(count) + " other people")
 
 	def decider(self, msg, headers):
 		rmsg = json.loads(msg)
 		update_action=Update()
 		if 'action' in rmsg and rmsg['action'] == 'config-update':
-			print "Triggering config update"
+			logging.info("Triggering config update")
 			return update_action.config_update
 		if 'action' in rmsg and rmsg['action'] == 'skynet-update':
-			print "Triggering Skynet update"
+			logging.info("Triggering Skynet update")
 			return update_action.skynet_update
 		if 'action' in rmsg and rmsg['action'] == 'code-update':
-			print "Triggering code update"
+			logging.info("Triggering code update")
 			return update_action.s3_update
 		if 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
-			print "OK you *say* you're from Github, but let's check your signature..."
+			logging.info("OK you *say* you're from Github, but let's check your signature...")
 			verification=self.git_verify(rmsg, headers)
 			if verification == "verified":
 				return update_action.code_update
 		# If nothing matches
-		print "Not a recognized notification"
+		logging.info("Not a recognized notification")
 		return "I don't what's going on here"
 
 	def git_verify(self, rmsg, headers):
 		if 'X-Hub-Signature' in headers:
 			signature = "sha1="+hmac.new(gittoken, omsg, sha1).hexdigest()
-			print signature
+			logging.debug(signature)
 			# The signature isn't working right now, so I'm going to skip validation
 			# if headers['X-Hub-Signature'] == signature:
 			if signature == signature:
-				print "Github Identity Confirmed"
+				logging.info("Github Identity Confirmed")
 				if 'commits' in rmsg and rmsg["commits"] > 0:
 					fbranch = rmsg["ref"]
 					global branch
@@ -125,16 +125,16 @@ class PreUpdater():
 					if branch == tags["branch"] and repo == tags["repo"]:
 						global nmsg
 						nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
-						print "Github Webhook Verified"
+						logging.info("Github Webhook Verified")
 						return "verified"
 					else:
-						print "the branch or repo doesn't match, this one's not for me"
+						logging.info("the branch or repo doesn't match, this one's not for me")
 				else:
-					print "No commits"
+					logging.info("No commits")
 			else:
-				print "Access Denied - Hashes don't match"
+				logging.warning("Access Denied - Hashes don't match")
 		else:
-			print "There's no Github Signature"
+			logging.warning("There's no Github Signature")
 class Update():
 	def __init__(self):
 		pass
@@ -142,33 +142,33 @@ class Update():
 		# Start update process
 		currenttime=str(int(time.time()))
 		regulartime=(datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
-		print "starting update process at "+regulartime
+		logging.info("starting update process at "+regulartime)
 		shutil.rmtree(work_dir, ignore_errors=True)
 		subprocess.call('git clone git@github.com:msirull/'+ repo +'.git '+ work_dir, shell=True)
 		shutil.rmtree(work_dir+'.git', ignore_errors=True)
 		# Insert compile scripts here
 		# Stop Services...the services need to not be hard coded
-		print "stopping services..."
+		logging.info("stopping services...")
 		for s in services:
 			subprocess.call('service ' + s + ' stop', shell=True)
 			# Moving/Archiving data
-		print "archiving data"
+		logging.info("archiving data")
 		subprocess.call('mkdir /etc/backup/'+ currenttime, shell=True)
 		subprocess.call('mv '+ webroot+'*' ' /etc/backup/'+ currenttime, shell=True)
 		# Copy new data in
-		print "copying new data in"
+		logging.info("copying new data in")
 		subprocess.call('cp -r '+ work_dir +'* ' + webroot, shell=True)
-		print "updating config"
+		logging.info("updating config")
 		# Get an up-to-date config file
 		subprocess.call('/etc/skynet/skynet-master/scripts/config_dl.sh /etc/config', shell=True)
-		print "starting services"
+		logging.info("starting services")
 		# Get everything working again
 		for s in services:
 			subprocess.call('service ' + s + ' start', shell=True)
-		print "update done!"
+		logging.info("update done!")
 		subprocess.call('aws s3 cp '+work_dir+' s3://'+repo_bucket+'/'+tags["repo"]+'/'+tags["branch"]+'/'+currenttime+' --recursive', shell=True)
-		print "copy to s3 done!"
-		print "Update successful!"
+		logging.info("copy to s3 done!")
+		logging.info("Update successful!")
 		return "success"
 
 	def s3_update(self):
@@ -176,7 +176,7 @@ class Update():
 		ctime=int(time.time())
 		currenttime = str(ctime)
 		regulartime = (datetime.datetime.fromtimestamp(int(currenttime)).strftime('%Y-%m-%d %H:%M:%S'))
-		print "starting update process at " + regulartime
+		logging.info("starting update process at " + regulartime)
 		shutil.rmtree(work_dir+tags['repo'], ignore_errors=True)
 		versions=[]
 		for k in repo_bucket_obj.list(tags['repo'] + '/' + tags['branch'] + '/','/'):
@@ -185,7 +185,7 @@ class Update():
 			versions.append(int(ke.replace('/', '')))
 		latest=max(versions)
 		# Copy from S3
-		print "Downloading code from S3"
+		logging.info("Downloading code from S3")
 		repo_bucket_files=repo_bucket_obj.list(tags['repo'] + '/' + tags['branch'] + '/' + str(latest) + '/')
 		for k in repo_bucket_files:
 			key = str(k.name)
@@ -199,7 +199,7 @@ class Update():
 		# Find latest revision
 		# Insert compile scripts here
 		# Stop Services...the services need to not be hard coded
-		print "stopping services..."
+		logging.info("stopping services...")
 		for s in services:
 			subprocess.call('service ' + s + ' stop', shell=True)
 		# Moving/Archiving data
@@ -207,7 +207,7 @@ class Update():
 		#	os.makedirs('/etc/backup/')
 		os.mkdir('/etc/backup'+currenttime)
 		#recursive_move(webroot, '/etc/backup/'+currenttime+'/')
-		print "starting archive"
+		logging.info("starting archive")
 		dst = '/etc/backup/'+currenttime+'/'
 		src = webroot
 		for f in os.listdir(src):
@@ -219,18 +219,18 @@ class Update():
 					shutil.move(src+f, dst+f)
 		#subprocess.call('cp -R '+ webroot+'*' ' /etc/backup/'+ currenttime +'/*', shell=True)
 		# Copy new data in
-		print "copying new data in"
+		logging.info("copying new data in")
 		subprocess.call('cp -r '+ work_dir + tags['repo'] + '/' + tags['branch'] + '/' + str(latest) + '/* ' + webroot, shell=True)
-		print "updating config"
+		logging.info("updating config")
 		# Get an up-to-date config file
 		subprocess.call('/etc/skynet/skynet-master/scripts/config_dl.sh /etc/config', shell=True)
-		print "starting services"
+		logging.info("starting services")
 		# Get everything working again
 		for s in services:
 			subprocess.call('service ' + s + ' start', shell=True)
 		complete_time=int(time.time())
 		duration=complete_time-ctime
-		print "Update successful! It took " + str(duration) + " seconds"
+		logging.info("Update successful! It took " + str(duration) + " seconds")
 		return "success"
 
 	def skynet_update(self):
@@ -239,12 +239,12 @@ class Update():
 		os.chmod("/etc/skynet/setup.sh", 0775)
 		subprocess.call('/etc/skynet/setup.sh', shell=True)
 		subprocess.call('kill -HUP `head -1 /etc/config/skynet.pid`', shell=True)
-		print "Assimilation Successful"
+		logging.info("Assimilation Successful")
 		return "success"
 
 	def config_update(self):
 		subprocess.call('/etc/config/config_dl.sh /etc/config', shell=True)
-		print "Config Updated!"
+		logging.info("Config Updated!")
 		return "success"
 
 def complete_update():
@@ -255,7 +255,7 @@ def complete_update():
 	else:
 		q.delete_message(msgid)
 		msgid.get_body()
-		print "Message deleted from queue"
+		logging.info("Message deleted from queue")
 	return
 
 if __name__ == '__main__':
