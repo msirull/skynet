@@ -1,0 +1,432 @@
+{
+  "Parameters": {
+    "InstanceType": {
+      "Description": "WebServer EC2 instance type",
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.medium",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge"
+      ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+    "WebServerPort": {
+      "Description": "The TCP port for the Web Server",
+      "Type": "Number",
+      "Default": "80"
+    },
+    "KeyPair": {
+      "Description": "The EC2 Key Pair to allow SSH access to the instances",
+      "Type": "String",
+      "Default" : "None"
+    },
+    "SSHLocation": {
+      "Description": "The IP address range that can be used to SSH to the EC2 instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "ZoneApex": {
+      "Description": "Root Domain Name",
+      "Type": "String"
+    },
+    "SubDomain": {
+      "Description": "SubDomain of Stack",
+      "Type": "String"
+    },
+    "PrivateRepo": {
+      "Description": "Github repository",
+      "Type": "String"
+    },
+    "PublicRepo": {
+      "Description": "Github repository",
+      "Type": "String"
+    },
+    "Branch": {
+      "Description": "Github Branch",
+      "Type": "String"
+    },
+    "Environment": {
+      "Description": "Environment",
+      "Type": "String"
+    },
+    "PublicSubnetBlocks": {
+    "Description": "Public CIDR blocks",
+    "Type": "CommaDelimitedList",
+      "Default": "10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24"
+  },
+    "PrivateSubnetBlocks": {
+    "Description": "API CIDR blocks",
+    "Type": "CommaDelimitedList",
+      "Default": "10.0.40.0/24, 10.0.41.0/24, 10.0.42.0/24"
+  },
+    "DBsubnetBlocks": {
+    "Description": "DB CIDR blocks",
+    "Type": "CommaDelimitedList",
+      "Default": "10.0.45.0/24, 10.0.46.0/24, 10.0.47.0/24"
+  }
+},
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "t2.micro"    : { "Arch" : "64" },
+      "t2.medium"   : { "Arch" : "64" },
+      "m3.medium"   : { "Arch" : "64" },
+      "m3.large"    : { "Arch" : "64" },
+      "m3.xlarge"   : { "Arch" : "64" }
+    },
+
+    "AWSRegionArch2AMI" : {
+      "us-east-1"      : { "64" : "ami-b66ed3de" },
+      "us-west-2"      : { "64" : "ami-b5a7ea85" },
+      "eu-west-1"		: { "64" : "ami-6e7bd919"}
+    },
+    "NatAMI" : {
+	    "us-east-1" : { "64" : "ami-184dc970"}, 
+		"us-west-2" : {"64" : "ami-290f4119"},
+		"eu-west-1" : {"64" : "ami-14913f63"}
+  	}
+  },
+  "Conditions" : {
+	"NoKeyPair" : {"Fn::Equals" : [{"Ref" : "KeyPair"},"None"]}  
+	},
+  "Resources": {
+    "elbR53Record": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Properties": {
+        "HostedZoneName": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "ZoneApex"
+              },
+              "."
+            ]
+          ]
+        },
+        "Comment": "Zone apex alias targeted to myELB LoadBalancer.",
+        "RecordSets": [
+          {
+            "Name": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "SubDomain"
+                  },
+                  ".",
+                  {
+                    "Ref": "ZoneApex"
+                  }
+                ]
+              ]
+            },
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": {
+                "Fn::GetAtt": [
+                  "PublicELB",
+                  "CanonicalHostedZoneNameID"
+                ]
+              },
+              "DNSName": {
+                "Fn::GetAtt": [
+                  "PublicELB",
+                  "CanonicalHostedZoneName"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "envVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "InstanceTenancy": "default",
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    },
+    "defaultIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                " ",
+                [
+                  {
+                    "Ref": "Environment"
+                  },
+                  "IGW"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "configTable1": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [ {"Ref" : "AWS::StackName"},"-",
+              {
+                "Ref": "Environment"
+              },
+              "-",
+              "config"
+            ]
+          ]
+        },
+        "KeySchema": {
+          "HashKeyElement": {
+            "AttributeName": "env",
+            "AttributeType": "S"
+          },
+          "RangeKeyElement": {
+            "AttributeName": "option",
+            "AttributeType": "S"
+          }
+        },
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "9",
+          "WriteCapacityUnits": "9"
+        }
+      }
+    },
+    "s3globalconfig": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {}
+    },
+    "sgTrusted": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Trusted Locations",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "72.194.81.45/32"
+          }
+        ]
+      }
+    },
+    "sgLocal": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "VPC Access",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "10.0.0.0/16"
+          }
+        ]
+      }
+    },
+    "sgOpen": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Wide Open",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "sgWebFirewall": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Web/Firewall Ports",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "sgELB": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Public ELB",
+        "VpcId": {
+          "Ref": "envVPC"
+		 },
+        "SecurityGroupIngress": {
+			    "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"},
+			    "FromPort": "80",
+			    "IpProtocol": "tcp",
+			    "ToPort": "80"
+        }
+		}
+	},
+    "sgUpdateMaintenance": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allow inbound maintenance notifications",
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "1666",
+            "ToPort": "1666",
+            "CidrIp": "10.0.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "666",
+            "ToPort": "666",
+            "CidrIp": "10.0.0.0/16"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "1666",
+            "ToPort": "1666",
+            "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"}
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "666",
+            "ToPort": "666",
+            "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"}
+          }
+        ]
+      }
+    },
+    "gw1": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "defaultIGW"
+        }
+      }
+    },
+    "dchpassoc1": {
+      "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "DhcpOptionsId": {
+          "Ref": "dopta01bb1c9"
+        }
+      }
+    },
+    "ingress1": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgTrusted"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "72.194.81.45/32"
+      }
+    },
+    "ingress2": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgLocal"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "10.0.0.0/16"
+      }
+    },
+    "ingress3": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgWebFirewall"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "80",
+        "ToPort": "80",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress4": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgWebFirewall"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "443",
+        "ToPort": "443",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress5": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgUpdateMaintenance"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "1666",
+        "ToPort": "1666",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "ingress6": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "sgUpdateMaintenance"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "666",
+        "ToPort": "666",
+        "CidrIp": "0.0.0.0/0"
+      }
+    }
+  },
+  "Description": "Global Template"
+}
