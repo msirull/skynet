@@ -13,3 +13,4 @@ git clone git@github.com:msirull/${repo}.git ${dir}
 cp ${dir}* /var/www/html/
 cp ${dir}*.supervisor /etc/config/
 cp ${dir}*.conf /etc/config/
+cp ${dir}*.nginx /etc/config/
