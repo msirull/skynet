@@ -40,11 +40,7 @@
       "Description": "SubDomain of Stack",
       "Type": "String"
     },
-    "PrivateRepo": {
-      "Description": "Github repository",
-      "Type": "String"
-    },
-    "PublicRepo": {
+    "Repo": {
       "Description": "Github repository",
       "Type": "String"
     },
@@ -70,7 +66,43 @@
     "Description": "DB CIDR blocks",
     "Type": "CommaDelimitedList",
       "Default": "10.0.45.0/24, 10.0.46.0/24, 10.0.47.0/24"
-  }
+  },
+    "VPC" : {
+      "Description" : "Environment VPC",
+      "Type" : "String"
+    },
+    "sgOpen" : {
+      "Description" : "Open Security Group",
+      "Type" : "String"
+    },
+    "sgUpdateMaintenance" : {
+      "Description" : "Skynet Security Group",
+      "Type" : "String"
+    },
+    "sgTrusted" : {
+      "Description" : "Trusted Locations",
+      "Type" : "String"
+    },
+    "sgWebFirewall" : {
+      "Description" : "Web/Firewall SG Ports",
+      "Type" : "String"
+    },
+    "sgLocal" : {
+      "Description" : "Local Security Group",
+      "Type" : "String"
+    },
+    "S3ConfigBucket" : {
+      "Description" : "S3 Configuration Bucket",
+      "Type" : "String"
+    },
+    "DynamoConfig" : {
+      "Description" : "Dynamo Config Tables",
+      "Type" : "String"
+    },
+    "NAT" : {
+      "Description" : "NAT Instance",
+      "Type" : "String"
+    }
 },
   "Mappings" : {
     "AWSInstanceType2Arch" : {
@@ -102,7 +134,7 @@
         "CidrBlock": { "Fn::Select" : [ "1", {"Ref": "PrivateSubnetBlocks"} ] },
         "AvailabilityZone" : { "Fn::Select" : [ "1", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
         "VpcId": {
-          "Ref": "envVPC"
+          "Ref": "VPC"
         },
         "Tags": [
           {
@@ -128,7 +160,7 @@
         "CidrBlock": { "Fn::Select" : [ "2", {"Ref": "PrivateSubnetBlocks"} ] },
         "AvailabilityZone" : { "Fn::Select" : [ "2", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
         "VpcId": {
-          "Ref": "envVPC"
+          "Ref": "VPC"
         },
         "Tags": [
           {
@@ -154,7 +186,7 @@
         "CidrBlock": { "Fn::Select" : [ "0", {"Ref": "PrivateSubnetBlocks"} ] },
         "AvailabilityZone" : { "Fn::Select" : [ "0", { "Fn::GetAZs" : { "Ref" : "AWS::Region" } } ] },
         "VpcId": {
-          "Ref": "envVPC"
+          "Ref": "VPC"
         },
         "Tags": [
           {
@@ -174,19 +206,11 @@
         ]
       }
     },
-    "dopta01bb1c9": {
-      "Type": "AWS::EC2::DHCPOptions",
-      "Properties": {
-        "DomainNameServers": [
-          "AmazonProvidedDNS"
-        ]
-      }
-    },
     "PrivateACL": {
       "Type": "AWS::EC2::NetworkAcl",
       "Properties": {
         "VpcId": {
-          "Ref": "envVPC"
+          "Ref": "VPC"
         }
       }
     },
@@ -194,32 +218,10 @@
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": {
-          "Ref": "envVPC"
+          "Ref": "VPC"
         }
       }
     },
-    "NatIP" : {
-   	  "Type" : "AWS::EC2::EIP",
-   	  "Properties" : {"InstanceId" : { "Ref" : "NAT4Private"}}
-    },
-    "NAT4Private" : {
-      "Type" : "AWS::EC2::Instance",
-      "Properties" : {
-	    "InstanceType" : {"Ref" : "InstanceType"},
-        "ImageId": { "Fn::FindInMap" : [ "NatAMI", { "Ref" : "AWS::Region" }, { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch"]}]},
-		"SecurityGroupIds" : [{"Ref" : "sgOpen"}],
-		"SourceDestCheck" : false,
-		"SubnetId" : {"Ref":"PublicSubnetA"},
-		"KeyName" : {
-      "Fn::If" : [
-      	"NoKeyPair",
-        {"Ref" : "AWS::NoValue"},
-        {"Ref" : "KeyPair"}
-      ]
-    },
-		"Tags" : [{"Key" : "Name", "Value":  {"Fn::Join": ["",[{"Ref": "PrivateRepo"},"-",{"Ref": "Environment"}, "-NAT"]]}}
-		]
-    }},
     "PrivateELB": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
@@ -309,7 +311,7 @@
                 "",
                 [
                   {
-                    "Ref": "PrivateRepo"
+                    "Ref": "Repo"
                   },
                   "-",
                   {
@@ -342,7 +344,7 @@
                 "",
                 [
                   {
-                    "Ref": "PrivateRepo"
+                    "Ref": "Repo"
                   },
                   "-",
                   {
@@ -361,14 +363,14 @@
           {
             "Key": "layer",
             "Value": {
-              "Ref": "PrivateRepo"
+              "Ref": "Repo"
             },
             "PropagateAtLaunch" : true
             },
           {
             "Key": "repo",
             "Value": {
-              "Ref": "PrivateRepo"
+              "Ref": "Repo"
             },
             "PropagateAtLaunch": true
           },
@@ -378,37 +380,6 @@
             "PropagateAtLaunch": true
           }
         ]
-      }
-    },
-    "configTable1": {
-      "Type": "AWS::DynamoDB::Table",
-      "Properties": {
-        "TableName": {
-          "Fn::Join": [
-            "",
-            [ {"Ref" : "AWS::StackName"},"-",
-              {
-                "Ref": "Environment"
-              },
-              "-",
-              "config"
-            ]
-          ]
-        },
-        "KeySchema": {
-          "HashKeyElement": {
-            "AttributeName": "env",
-            "AttributeType": "S"
-          },
-          "RangeKeyElement": {
-            "AttributeName": "option",
-            "AttributeType": "S"
-          }
-        },
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "9",
-          "WriteCapacityUnits": "9"
-        }
       }
     },
     "s3repostaging": {
@@ -425,7 +396,7 @@
                 "",
                 [
                   {
-                    "Ref": "PrivateRepo"
+                    "Ref": "Repo"
                   },
                   "-",
                   {
@@ -509,11 +480,6 @@
 
 					  }
 				  },
-				"files" : {
-					"/temp/test.txt" : {
-						"content" : {"Fn::Join" : ["", ["aws dynamodb put-item --table-name  --item '{\"env\": {\"S\": ", {"Ref" : "Environment"}, "},\"layer\": {\"S\": ", {"Ref" : "Environment"} ,"},\"url\": {\"S\": ", {"Fn::GetAtt": ["PublicELB","DNSName"]} ,"}}' --region ", {"Ref" : "AWS::Region"}]]}
-					}
-				},
 				"commands" : {
 					"0SetUpDirectories" : {
 						"command" : "mkdir -p /var/www/html",
@@ -781,18 +747,7 @@
           "Ref": "PrivateRouteTable"
         },
         "InstanceId": {
-          "Ref": "NAT4Private"
-        }
-      }
-    },
-    "dchpassoc1": {
-      "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
-      "Properties": {
-        "VpcId": {
-          "Ref": "envVPC"
-        },
-        "DhcpOptionsId": {
-          "Ref": "dopta01bb1c9"
+          "Ref": "NAT"
         }
       }
     },
@@ -877,7 +832,7 @@
                     "s3:GetObject"
                   ],
                   "Resource": [
-                    { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/global/*"]]}
+                    { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "S3ConfigBucket"}, "/global/*"]]}
                   ]
                 },
                 {
@@ -897,7 +852,7 @@
                         [
                           "arn:aws:s3:::",
                           {
-                            "Ref": "s3globalconfig"
+                            "Ref": "S3ConfigBucket"
                           }
                         ]
                       ]
@@ -913,7 +868,7 @@
 				    }
               ]
             },
-        "Roles" : [{"Ref" : "ec2Role1"}, {"Ref" : "ec2Role2"}]
+        "Roles" : [{"Ref" : "ec2Role1"}]
       }
     },
     "EnvironmentConfigPolicy" : {
@@ -928,8 +883,8 @@
                   "Action": [
                     "s3:GetObject"
                   ],
-                  "Resource": [{"Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}, "/environments/", {"Ref" : "Environment"}, "/database/*"]]},
-                    {"Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}, "/environments/", {"Ref" : "Environment"}, "/web-server/*"]]}]
+                  "Resource": [{"Fn::Join": ["",["arn:aws:s3:::",{"Ref": "S3ConfigBucket"}, "/environments/", {"Ref" : "Environment"}, "/database/*"]]},
+                    {"Fn::Join": ["",["arn:aws:s3:::",{"Ref": "S3ConfigBucket"}, "/environments/", {"Ref" : "Environment"}, "/web-server/*"]]}]
                 },
                 {
                   "Effect": "Allow",
@@ -949,7 +904,7 @@
                         [
                           "arn:aws:s3:::",
                           {
-                            "Ref": "s3globalconfig"
+                            "Ref": "S3ConfigBucket"
                           }
                         ]
                       ]
@@ -974,7 +929,7 @@
                         [
                           "arn:aws:s3:::",
                           {
-                            "Ref": "s3globalconfig"
+                            "Ref": "S3ConfigBucket"
                           }
                         ]
                       ]
@@ -983,7 +938,7 @@
                 }
               ]
             },
-        "Roles" : [{"Ref" : "ec2Role1"}, {"Ref" : "ec2Role2"}]
+        "Roles" : [{"Ref" : "ec2Role1"}]
       }
     },
     "DynamoConfigPolicy1":    {
@@ -1006,7 +961,7 @@
                     }
                   },
                   "Resource": [
-                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/", {"Ref": "configTable1"}]]}
+                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/", {"Ref": "DynamoConfig"}]]}
                  ]
                 },
                 {
@@ -1116,8 +1071,8 @@
         "s3:GetObject"
       ],
       "Resource": [
-	       { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/layer/", {"Ref" : "PrivateRepo"}, "/*"]]},
-	        { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3globalconfig"}, "/ssl/*"]]}
+	       { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "S3ConfigBucket"}, "/layer/", {"Ref" : "Repo"}, "/*"]]},
+	        { "Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "S3ConfigBucket"}, "/ssl/*"]]}
       ]
     },
   {
@@ -1127,11 +1082,11 @@
       ],
       "Condition": {
         "StringLike": {
-          "s3:prefix": { "Fn::Join": [ "", ["layer/", {"Ref" : "PrivateRepo"}, "/*"]]}
+          "s3:prefix": { "Fn::Join": [ "", ["layer/", {"Ref" : "Repo"}, "/*"]]}
         }
       },
       "Resource": [
-        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}]]}
+        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "S3ConfigBucket"}]]}
       ]
     },
 
@@ -1146,7 +1101,7 @@
         }
       },
       "Resource": [
-        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "s3globalconfig"}]]}
+        { "Fn::Join": ["",["arn:aws:s3:::",{"Ref": "S3ConfigBucket"}]]}
       ]
     }
   ]
@@ -1189,7 +1144,7 @@
       ],
       "Condition": {
         "StringLike": {
-          "s3:prefix": {"Fn::Join": [ "", [ {"Ref" : "PrivateRepo"},"/", {"Ref" : "Branch"}]]}
+          "s3:prefix": {"Fn::Join": [ "", [ {"Ref" : "Repo"},"/", {"Ref" : "Branch"}]]}
         }
       },
       "Resource": [
@@ -1204,7 +1159,7 @@
         "s3:PutObject"
       ],
       "Resource": [
-	    {"Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3repostaging"}, "/", {"Ref" : "PrivateRepo"},"/", {"Ref" : "Branch"}, "/*"]]}
+	    {"Fn::Join": [ "", ["arn:aws:s3:::", {"Ref": "s3repostaging"}, "/", {"Ref" : "Repo"},"/", {"Ref" : "Branch"}, "/*"]]}
       ]
     }
   ]
@@ -1237,7 +1192,7 @@
             [
               "/",
               {
-                "Ref": "PrivateRepo"
+                "Ref": "Repo"
               },
               "/",
               {
@@ -1252,7 +1207,7 @@
     "ec2InstanceProfile1": {
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
-        "Path": {"Fn::Join": ["",["/",{"Ref": "PrivateRepo"},"/",{"Ref": "Environment"}, "/"]]        },
+        "Path": {"Fn::Join": ["",["/",{"Ref": "Repo"},"/",{"Ref": "Environment"}, "/"]]        },
         "Roles": [
           {
             "Ref": "ec2Role1"

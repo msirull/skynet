@@ -40,7 +40,11 @@
       "Description": "SubDomain of Stack",
       "Type": "String"
     },
-    "PrivateRepo": {
+    "PrivateRepo1": {
+      "Description": "Github repository",
+      "Type": "String"
+    },
+    "PrivateRepo2": {
       "Description": "Github repository",
       "Type": "String"
     },
@@ -96,55 +100,73 @@
 	"NoKeyPair" : {"Fn::Equals" : [{"Ref" : "KeyPair"},"None"]}  
 	},
   "Resources": {
-    "elbR53Record": {
-      "Type": "AWS::Route53::RecordSetGroup",
-      "Properties": {
-        "HostedZoneName": {
-          "Fn::Join": [
-            "",
-            [
-              {
-                "Ref": "ZoneApex"
-              },
-              "."
-            ]
-          ]
-        },
-        "Comment": "Zone apex alias targeted to myELB LoadBalancer.",
-        "RecordSets": [
-          {
-            "Name": {
-              "Fn::Join": [
-                "",
-                [
-                  {
-                    "Ref": "SubDomain"
-                  },
-                  ".",
-                  {
-                    "Ref": "ZoneApex"
-                  }
-                ]
-              ]
-            },
-            "Type": "A",
-            "AliasTarget": {
-              "HostedZoneId": {
-                "Fn::GetAtt": [
-                  "PublicELB",
-                  "CanonicalHostedZoneNameID"
-                ]
-              },
-              "DNSName": {
-                "Fn::GetAtt": [
-                  "PublicELB",
-                  "CanonicalHostedZoneName"
-                ]
-              }
-            }
-          }
-        ]
-      }
+    "PrivateStack1" : {
+       "Type" : "AWS::CloudFormation::Stack",
+       "Properties" : {
+          "Parameters" : {
+            "Environment" : {"Ref" : "Environment"},
+            "Branch" : {"Ref" : "Branch"},
+            "ZoneApex" : {"Ref" : "ZoneApex"},
+            "SubDomain" : {"Ref" : "SubDomain"},
+            "Repo" : {"Ref" : "PrivateRepo1"},
+            "S3ConfigBucket" : {"Ref" : "s3globalconfig"},
+            "DynamoConfig" : {"Ref" : "configTable1"},
+            "VPC" : {"Ref" : "envVPC"},
+            "sgOpen" : {"Ref" : "sgOpen"},
+            "sgTrusted" : {"Ref" : "sgTrusted"},
+            "sgWebFirewall" : {"Ref" : "sgWebFirewall"},
+            "sgELB" : {"Ref" : "sgELB"},
+            "sgLocal" : {"Ref" : "sgLocal"},
+            "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"},
+            "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] }
+          },
+          "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
+        }
+    },
+    "PrivateStack2" : {
+       "Type" : "AWS::CloudFormation::Stack",
+       "Properties" : {
+          "Parameters" : {
+            "Environment" : {"Ref" : "Environment"},
+            "Branch" : {"Ref" : "Branch"},
+            "ZoneApex" : {"Ref" : "ZoneApex"},
+            "SubDomain" : {"Ref" : "SubDomain"},
+            "Repo" : {"Ref" : "PrivateRepo2"},
+            "S3ConfigBucket" : {"Ref" : "s3globalconfig"},
+            "DynamoConfig" : {"Ref" : "configTable1"},
+            "VPC" : {"Ref" : "envVPC"},
+            "sgOpen" : {"Ref" : "sgOpen"},
+            "sgTrusted" : {"Ref" : "sgTrusted"},
+            "sgWebFirewall" : {"Ref" : "sgWebFirewall"},
+            "sgELB" : {"Ref" : "sgELB"},
+            "sgLocal" : {"Ref" : "sgLocal"},
+            "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"},
+            "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] }
+          },
+          "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
+        }
+    },
+    "PublicStack" : {
+       "Type" : "AWS::CloudFormation::Stack",
+       "Properties" : {
+          "Parameters" : {
+            "Environment" : {"Ref" : "Environment"},
+            "Branch" : {"Ref" : "Branch"},
+            "ZoneApex" : {"Ref" : "ZoneApex"},
+            "SubDomain" : {"Ref" : "SubDomain"},
+            "Repo" : {"Ref" : "PublicRepo"},
+            "S3ConfigBucket" : {"Ref" : "s3globalconfig"},
+            "DynamoConfig" : {"Ref" : "configTable1"},
+            "VPC" : {"Ref" : "envVPC"},
+            "sgOpen" : {"Ref" : "sgOpen"},
+            "sgTrusted" : {"Ref" : "sgTrusted"},
+            "sgWebFirewall" : {"Ref" : "sgWebFirewall"},
+            "sgELB" : {"Ref" : "sgELB"},
+            "sgLocal" : {"Ref" : "sgLocal"},
+            "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"}
+          },
+          "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/edge_template.json"
+        }
     },
     "envVPC": {
       "Type": "AWS::EC2::VPC",
@@ -357,6 +379,14 @@
         "DhcpOptionsId": {
           "Ref": "dopta01bb1c9"
         }
+      }
+    },
+    "dopta01bb1c9": {
+      "Type": "AWS::EC2::DHCPOptions",
+      "Properties": {
+        "DomainNameServers": [
+          "AmazonProvidedDNS"
+        ]
       }
     },
     "ingress1": {

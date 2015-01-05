@@ -42,12 +42,8 @@ stack_items = table_obj.query_2(env__eq=env)
 for items in stack_items:
 	stack=items['layer']+"/"+items['env']
 	url=items['url']
-	if stack == (tags['layer'] + '/' + env) or stack == "/":
-		locations[stack] = '127.0.0.1'
-		port='666'
-	else:
-		locations[stack] = url
-		port='1666'
+	locations[stack] = '127.0.0.1'
+	port='666'
 	file = open("/etc/config/rpc.locations", "a")
 	file.write("location /" + stack +"/ {\n")
 	file.write("proxy_pass http://"+ locations[stack] +":" + port + "/;"+"\n")
