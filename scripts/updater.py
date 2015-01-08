@@ -90,18 +90,21 @@ class PreUpdater():
         update_action=Update()
         if 'action' in rmsg and rmsg['action'] == 'config-update':
             logging.info("Triggering config update")
-            return update_action.config_update
+            return update_action.config_update()
         elif 'action' in rmsg and rmsg['action'] == 'skynet-update':
             logging.info("Triggering Skynet update")
-            return update_action.skynet_update
+            return update_action.skynet_update()
         elif 'action' in rmsg and rmsg['action'] == 'code-update':
             logging.info("Triggering code update")
-            return update_action.s3_update
+            return update_action.s3_update()
         elif 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
             logging.info("OK you *say* you're from Github, but let's check your signature...")
             verification=self.git_verify(msg, headers)
             if verification == "verified":
-                return update_action.code_update
+                pmsg=json.loads(msg["repository"]["name"])
+                fbranch = rmsg["ref"]
+                branch = fbranch.replace("refs/heads/", "")
+                return update_action.code_update(pmsg, branch)
         # If nothing matches
         else:
             logging.info("Not a recognized notification")
@@ -118,9 +121,7 @@ class PreUpdater():
             #    logging.info("Github Identity Confirmed")
         if 'commits' in rmsg and rmsg["commits"] > 0:
             fbranch = rmsg["ref"]
-            global branch
             branch = fbranch.replace("refs/heads/", "")
-            global repo
             repo = rmsg["repository"]["name"]
             if branch == tags["branch"] and repo == tags["repo"]:
                 global nmsg
@@ -140,7 +141,7 @@ class Update():
     def __init__(self):
         pass
 
-    def code_update(self):
+    def code_update(self, repo, branch):
         # Start update process
         currenttime=str(int(time.time()))
         regulartime=(datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
