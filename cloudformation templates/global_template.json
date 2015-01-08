@@ -115,10 +115,13 @@
             "sgOpen" : {"Ref" : "sgOpen"},
             "sgTrusted" : {"Ref" : "sgTrusted"},
             "sgWebFirewall" : {"Ref" : "sgWebFirewall"},
-            "sgELB" : {"Ref" : "sgELB"},
             "sgLocal" : {"Ref" : "sgLocal"},
             "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"},
-            "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] }
+            "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] },
+            "KeyPair" : {"Ref" : "KeyPair"},
+            "ServiceNumber" : 1,
+            "SubnetBlocks" : "10.0.40.0/24, 10.0.41.0/24, 10.0.42.0/24"
+
           },
           "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
         }
@@ -138,10 +141,12 @@
             "sgOpen" : {"Ref" : "sgOpen"},
             "sgTrusted" : {"Ref" : "sgTrusted"},
             "sgWebFirewall" : {"Ref" : "sgWebFirewall"},
-            "sgELB" : {"Ref" : "sgELB"},
             "sgLocal" : {"Ref" : "sgLocal"},
             "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"},
-            "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] }
+            "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] },
+            "KeyPair" : {"Ref" : "KeyPair"},
+            "ServiceNumber" : 2,
+            "SubnetBlocks" : "10.0.43.0/24, 10.0.44.0/24, 10.0.45.0/24"
           },
           "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
         }
@@ -163,7 +168,9 @@
             "sgWebFirewall" : {"Ref" : "sgWebFirewall"},
             "sgELB" : {"Ref" : "sgELB"},
             "sgLocal" : {"Ref" : "sgLocal"},
-            "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"}
+            "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"},
+            "KeyPair" : {"Ref" : "KeyPair"},
+            "IGW" : {"Ref" : "defaultIGW"}
           },
           "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/edge_template.json"
         }
@@ -189,21 +196,19 @@
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
         "Tags": [
-          {
-            "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                " ",
-                [
-                  {
-                    "Ref": "Environment"
-                  },
-                  "IGW"
-                ]
-              ]
-            }
-          }
+          { "Key": "Name", "Value": {"Fn::Join": [" ",[{"Ref": "Environment"},"IGW"]]}}
         ]
+      }
+    },
+    "gw1": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "envVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "defaultIGW"
+        }
       }
     },
     "configTable1": {
@@ -252,6 +257,10 @@
           {
             "IpProtocol": "-1",
             "CidrIp": "72.194.81.45/32"
+          },
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "216.174.116.244/32"
           }
         ]
       }
@@ -357,17 +366,6 @@
             "SourceSecurityGroupId": {"Ref" : "sgWebFirewall"}
           }
         ]
-      }
-    },
-    "gw1": {
-      "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Properties": {
-        "VpcId": {
-          "Ref": "envVPC"
-        },
-        "InternetGatewayId": {
-          "Ref": "defaultIGW"
-        }
       }
     },
     "dchpassoc1": {
