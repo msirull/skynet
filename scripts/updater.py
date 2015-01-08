@@ -109,32 +109,32 @@ class PreUpdater():
 
     def git_verify(self, rmsg, headers):
         msg = json.dumps(rmsg)
-        if 'X-Hub-Signature' in headers:
-            signature = "sha1="+hmac.new(gittoken, msg, sha1).hexdigest()
-            logging.debug(signature)
+        #if 'X-Hub-Signature' in headers:
+         #   signature = "sha1="+hmac.new(gittoken, msg, sha1).hexdigest()
+         #   logging.debug(signature)
             # The signature verification isn't working right now, so I'm going to skip validation
             # if headers['X-Hub-Signature'] == signature:
-            if signature == signature:
-                logging.info("Github Identity Confirmed")
-                if 'commits' in rmsg and rmsg["commits"] > 0:
-                    fbranch = rmsg["ref"]
-                    global branch
-                    branch = fbranch.replace("refs/heads/", "")
-                    global repo
-                    repo = rmsg["repository"]["name"]
-                    if branch == tags["branch"] and repo == tags["repo"]:
-                        global nmsg
-                        nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
-                        logging.info("Github Webhook Verified")
-                        return "verified"
-                    else:
-                        logging.info("the branch or repo doesn't match, this one's not for me")
-                else:
-                    logging.info("No commits")
+            #if signature == signature:
+            #    logging.info("Github Identity Confirmed")
+        if 'commits' in rmsg and rmsg["commits"] > 0:
+            fbranch = rmsg["ref"]
+            global branch
+            branch = fbranch.replace("refs/heads/", "")
+            global repo
+            repo = rmsg["repository"]["name"]
+            if branch == tags["branch"] and repo == tags["repo"]:
+                global nmsg
+                nmsg = {"action" : "code-update", "repo": repo, "branch": branch}
+                logging.info("Github Webhook Verified")
+                return "verified"
             else:
-                logging.warning("Access Denied - Hashes don't match")
+                logging.info("the branch or repo doesn't match, this one's not for me")
         else:
-            logging.warning("There's no Github Signature")
+            logging.info("No commits")
+           # else:
+                #logging.warning("Access Denied - Hashes don't match")
+       # else:
+          #  logging.warning("There's no Github Signature")
 
 class Update():
     def __init__(self):
