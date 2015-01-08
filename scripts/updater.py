@@ -90,13 +90,13 @@ class PreUpdater():
         update_action=Update()
         if 'action' in rmsg and rmsg['action'] == 'config-update':
             logging.info("Triggering config update")
-            return update_action.config_update()
+            return update_action.config_update
         elif 'action' in rmsg and rmsg['action'] == 'skynet-update':
             logging.info("Triggering Skynet update")
-            return update_action.skynet_update()
+            return update_action.skynet_update
         elif 'action' in rmsg and rmsg['action'] == 'code-update':
             logging.info("Triggering code update")
-            return update_action.s3_update()
+            return update_action.s3_update
         elif 'User-Agent' in headers and headers['User-Agent'].startswith('GitHub-Hookshot'):
             logging.info("OK you *say* you're from Github, but let's check your signature...")
             verification=self.git_verify(msg, headers)

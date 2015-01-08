@@ -220,7 +220,6 @@
         "VpcSecurityGroupIds": [{"Ref": "sgLocal"}],
         "CacheSubnetGroupName" : {"Ref": "PublicReadCacheSubnetGroup"},
         "Engine" : "redis",
-        "ClusterName" : "PublicReadCache",
         "NumCacheNodes" : "1"
       }
   },
@@ -781,6 +780,27 @@
         }
       }
     },
+    "SWFAccess": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument" : {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "swf:*"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+      },
+              "PolicyName" : "SWFAccess",
+              "Roles" : [{"Ref" : "ec2Role"}]
+         }
+      },
     "GlobalConfigPolicy" : {
       "Type": "AWS::IAM::Policy",
       "Properties" : {
@@ -830,7 +850,7 @@
 				    }
               ]
             },
-        "Roles" : [{"Ref" : "ec2Role2"}]
+        "Roles" : [{"Ref" : "ec2Role"}]
       }
     },
     "EnvironmentConfigPolicy" : {
@@ -900,7 +920,7 @@
                 }
               ]
             },
-        "Roles" : [{"Ref" : "ec2Role2"}]
+        "Roles" : [{"Ref" : "ec2Role"}]
       }
     },
     "DynamoConfigPolicy2":    {
@@ -945,7 +965,7 @@
                 }
               ]
             },
-          "Roles" : [{"Ref" : "ec2Role2"}]
+          "Roles" : [{"Ref" : "ec2Role"}]
       }
       },
     "ServiceRegistration": {
@@ -971,7 +991,7 @@
 				  ]
 
 			},
-        "Roles" : [{"Ref" : "ec2Role2"}]
+        "Roles" : [{"Ref" : "ec2Role"}]
 		  }
     },
     "IAMInfoPolicy2" :  {
@@ -990,7 +1010,7 @@
         "iam:ListRolePolicies"
       ],
       "Resource": [
-	      { "Fn::GetAtt" : [ "ec2Role2" , "Arn" ]}
+	      { "Fn::GetAtt" : [ "ec2Role" , "Arn" ]}
       ]
     },
     {
@@ -1002,7 +1022,7 @@
         "iam:ListRolePolicies"
       ],
       "Resource": [
-	      { "Fn::GetAtt" : [ "ec2Role2" , "Arn" ]}
+	      { "Fn::GetAtt" : [ "ec2Role" , "Arn" ]}
       ]
     },
 {
@@ -1017,7 +1037,7 @@
     }
   ]
 },
-          "Roles" : [{"Ref" : "ec2Role2"}]
+          "Roles" : [{"Ref" : "ec2Role"}]
           }
           },
     "LayerConfigPolicy2" : {
@@ -1065,7 +1085,7 @@
     }
   ]
 },
-            "Roles" : [{"Ref" : "ec2Role2"}]
+            "Roles" : [{"Ref" : "ec2Role"}]
         }
       },
     "MaintenanceQueuePolicy2" :  {
@@ -1086,7 +1106,7 @@
     }
   ]
 	          },
-	          "Roles" : [{"Ref" : "ec2Role2"}]
+	          "Roles" : [{"Ref" : "ec2Role"}]
            }
         },
     "S3RepoBucketPolicy2" :  {
@@ -1123,10 +1143,10 @@
     }
   ]
 },
-            "Roles" : [{"Ref" : "ec2Role2"}]
+            "Roles" : [{"Ref" : "ec2Role"}]
           }
     },
-    "ec2Role2": {
+    "ec2Role": {
       "Type": "AWS::IAM::Role",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -1168,7 +1188,7 @@
         "Path": {"Fn::Join": ["",["/",{"Ref": "Repo"},"/",{"Ref": "Environment"}, "/"]]        },
         "Roles": [
           {
-            "Ref": "ec2Role2"
+            "Ref": "ec2Role"
           }
         ]
       }

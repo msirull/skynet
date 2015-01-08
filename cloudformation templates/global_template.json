@@ -120,7 +120,8 @@
             "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] },
             "KeyPair" : {"Ref" : "KeyPair"},
             "ServiceNumber" : 1,
-            "SubnetBlocks" : "10.0.40.0/24, 10.0.41.0/24, 10.0.42.0/24"
+            "SubnetBlocks" : "10.0.40.0/24, 10.0.41.0/24, 10.0.42.0/24",
+            "InstanceType" : {"Ref" : "InstanceType"}
 
           },
           "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
@@ -146,7 +147,8 @@
             "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] },
             "KeyPair" : {"Ref" : "KeyPair"},
             "ServiceNumber" : 2,
-            "SubnetBlocks" : "10.0.43.0/24, 10.0.44.0/24, 10.0.45.0/24"
+            "SubnetBlocks" : "10.0.43.0/24, 10.0.44.0/24, 10.0.45.0/24",
+            "InstanceType" : {"Ref" : "InstanceType"}
           },
           "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
         }
@@ -170,7 +172,8 @@
             "sgLocal" : {"Ref" : "sgLocal"},
             "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"},
             "KeyPair" : {"Ref" : "KeyPair"},
-            "IGW" : {"Ref" : "defaultIGW"}
+            "IGW" : {"Ref" : "defaultIGW"},
+            "InstanceType" : {"Ref" : "InstanceType"}
           },
           "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/edge_template.json"
         }
