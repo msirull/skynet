@@ -4,7 +4,7 @@ import boto.sqs, boto.ec2, subprocess, shutil, time, json, datetime, hmac, os, e
 from hashlib import sha1
 from boto.s3.connection import S3Connection
 import boto.ec2
-logging.basicConfig(filename='/var/log/skynet/skynet.log',level=logging.DEBUG)
+logging.basicConfig(filename='/var/log/skynet/skynet.log',level=logging.INFOI)
 iid = get_instance_metadata()['instance-id']
 ## GET TAGS
 
