@@ -10,8 +10,8 @@ reservations = ec2_conn.get_all_reservations(instance_ids='%s' %iid)
 instance = reservations[0].instances[0]
 tags= instance.tags
 # Add default endpoint locations into Nginx
-if os.path.exists("/etc/config/rp.locations"):
-	os.remove("/etc/config/rp.locations")
+if os.path.exists("/etc/config/api.locations"):
+	os.remove("/etc/config/api.locations")
 env = tags['environment']
 tbl = "endpoints"
 locations = {}
@@ -21,7 +21,7 @@ for items in stack_items:
 	stack=items['layer']+"/"+items['env']
 	url=items['url']
 	locations[stack] = url
-	file = open("/etc/config/rp.locations", "a")
+	file = open("/etc/config/api.locations", "a")
 	file.write("location /" + stack +"/ {\n")
 	file.write("proxy_pass http://"+ locations[stack] +"/;"+"\n")
 	file.write("}\n")
