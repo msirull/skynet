@@ -352,7 +352,7 @@
         "MaxSize": "15",
         "MinSize": "1",
         "HealthCheckGracePeriod": "300",
-        "HealthCheckType": "ELB",
+        "HealthCheckType": "EC2",
         "LaunchConfigurationName": {
           "Ref": "PublicLC"
         },
@@ -470,7 +470,7 @@
       ]
     },
         "IamInstanceProfile": {
-          "Ref": "ec2InstanceProfile2"
+          "Ref": "ec2InstanceProfile"
         },
         "SecurityGroups": [
             {"Ref": "sgTrusted"},
@@ -522,7 +522,8 @@
 						"GitPython" : [],
 						"flask" : [],
 						"gunicorn" : [],
-						"supervisor" : []
+						"supervisor" : [],
+						"redis" : []
 					}
 				},
 				"commands" : {
@@ -544,8 +545,8 @@
 							]]
 						}
 					},
-					"/var/www/html/test.html" : {
-						"content" : "It Works!"
+					"/var/log/edge/edge.log" : {
+						"content" : "Start\n"
 					},
 					"/etc/config/rp.nginx" : {
 						"content" : { "Fn::Join" : [ "", [
@@ -554,7 +555,8 @@
 							"server_name  _; \n",
 							"root         /var/www/html; \n",
 							"\n",
-							"include /etc/config/rp.locations;",
+							"include /etc/config/rp.locations;\n",
+                            "include /etc/config/api.locations;\n",
 							"} \n"
 							]]},
 							"owner" : "nginx",
@@ -562,7 +564,7 @@
 					},
                     "/etc/config/rp.locations" : {
 						"content" : {"Fn::Join" : ["", [
-							"location / {\n",
+							"location /swf/ {\n",
 							"proxy_pass http://localhost:8080/;\n ",
                             "}"
 							]]
@@ -599,7 +601,11 @@
 					},
 					"ASetPermissions" : {
 							"command" : "chmod 755 /etc/skynet/skynet-master/setup.sh"
-					}
+					},
+-					"CReverseProxyLocations" : {
+-						"command" : "python /etc/skynet/skynet-master/scripts/rp_config.py"
+-
+-					}
 				},
 				"services" : {
 					"sysvinit" : {
@@ -1182,7 +1188,7 @@
           ]
         }      }
     },
-    "ec2InstanceProfile2": {
+    "ec2InstanceProfile": {
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": {"Fn::Join": ["",["/",{"Ref": "Repo"},"/",{"Ref": "Environment"}, "/"]]        },

@@ -294,7 +294,7 @@
         "MaxSize": "15",
         "MinSize": "1",
         "HealthCheckGracePeriod": "180",
-        "HealthCheckType": "ELB",
+        "HealthCheckType": "EC2",
         "LaunchConfigurationName": {
           "Ref": "PrivateLC"
         },
@@ -386,6 +386,31 @@
       "Type": "AWS::S3::Bucket",
       "Properties": {}
     },
+    "ServiceConfigTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Fn::Join": [
+            "",
+            [
+              {"Ref": "AWS::StackName"},
+              "-",
+              "config"
+            ]
+          ]
+        },
+        "KeySchema": {
+          "HashKeyElement": {
+            "AttributeName": "Key",
+            "AttributeType": "S"
+          }
+        },
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "3",
+          "WriteCapacityUnits": "3"
+        }
+      }
+    },
     "maintenanceQueue1": {
       "Type": "AWS::SQS::Queue",
       "Properties" : {
@@ -422,7 +447,7 @@
       ]
     },
         "IamInstanceProfile": {
-          "Ref": "ec2InstanceProfile1"
+          "Ref": "ec2InstanceProfile"
         },
         "SecurityGroups": [
           {
@@ -476,7 +501,8 @@
   						"GitPython" : [],
   						"flask" : [],
   						"gunicorn" : [],
-  						"supervisor" : []
+  						"supervisor" : [],
+  						"redis" : []
 
 					  }
 				  },
@@ -534,6 +560,9 @@
 							]]},
 							"owner" : "nginx",
 							"group" : "nginx"
+					},
+					"/var/log/app/app.log" : {
+						"content" : "Start\n"
 					}
 				},
 				"groups" : {
@@ -819,6 +848,27 @@
         "CidrIp": "0.0.0.0/0"
       }
     },
+    "ServiceConfigTableAccess": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument" : {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+                  "Effect": "Allow",
+                  "Action": [
+                    "*"
+                  ],
+                  "Resource": [
+                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/", {"Ref": "ServiceConfigTable"}]]}
+                 ]
+                }
+          ]
+      },
+              "PolicyName" : "ServiceConfigTable",
+              "Roles" : [{"Ref" : "ec2Role"}]
+         }
+      },
     "SWFAccess": {
       "Type": "AWS::IAM::Policy",
       "Properties": {
@@ -970,6 +1020,14 @@
               "Version": "2012-10-17",
               "Statement": [
                 {
+                  "Effect": "Allow",
+                  "Action": [
+                    "*"
+                  ],
+                  "Resource": [
+                { "Fn::Join": [ "", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"} , ":", {"Ref": "AWS::AccountId"}, ":table/", {"Ref": "ServiceConfigTable"}]]}
+                 ]
+                },{
                   "Effect": "Allow",
                   "Action": [
                     "dynamodb:BatchGetItem",
@@ -1225,7 +1283,7 @@
         }
       }
     },
-    "ec2InstanceProfile1": {
+    "ec2InstanceProfile": {
       "Type": "AWS::IAM::InstanceProfile",
       "Properties": {
         "Path": {"Fn::Join": ["",["/",{"Ref": "Repo"},"/",{"Ref": "Environment"}, "/"]]        },

@@ -48,6 +48,10 @@
       "Description": "Github repository",
       "Type": "String"
     },
+    "PrivateRepo3": {
+      "Description": "Github repository",
+      "Type": "String"
+    },
     "PublicRepo": {
       "Description": "Github repository",
       "Type": "String"
@@ -148,6 +152,32 @@
             "KeyPair" : {"Ref" : "KeyPair"},
             "ServiceNumber" : 2,
             "SubnetBlocks" : "10.0.43.0/24, 10.0.44.0/24, 10.0.45.0/24",
+            "InstanceType" : {"Ref" : "InstanceType"}
+          },
+          "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
+        }
+    },
+    "PrivateStack3" : {
+       "Type" : "AWS::CloudFormation::Stack",
+       "Properties" : {
+          "Parameters" : {
+            "Environment" : {"Ref" : "Environment"},
+            "Branch" : {"Ref" : "Branch"},
+            "ZoneApex" : {"Ref" : "ZoneApex"},
+            "SubDomain" : {"Ref" : "SubDomain"},
+            "Repo" : {"Ref" : "PrivateRepo2"},
+            "S3ConfigBucket" : {"Ref" : "s3globalconfig"},
+            "DynamoConfig" : {"Ref" : "configTable1"},
+            "VPC" : {"Ref" : "envVPC"},
+            "sgOpen" : {"Ref" : "sgOpen"},
+            "sgTrusted" : {"Ref" : "sgTrusted"},
+            "sgWebFirewall" : {"Ref" : "sgWebFirewall"},
+            "sgLocal" : {"Ref" : "sgLocal"},
+            "sgUpdateMaintenance" : {"Ref" : "sgUpdateMaintenance"},
+            "NAT": { "Fn::GetAtt" : [ "PublicStack", "Outputs.NAT4Private" ] },
+            "KeyPair" : {"Ref" : "KeyPair"},
+            "ServiceNumber" : 2,
+            "SubnetBlocks" : "10.0.46.0/24, 10.0.47.0/24, 10.0.48.0/24",
             "InstanceType" : {"Ref" : "InstanceType"}
           },
           "TemplateURL" : "https://s3.amazonaws.com/dualspark-cf-templates/service_template.json"
