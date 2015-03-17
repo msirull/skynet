@@ -17,7 +17,6 @@ Benefits:
 - Self-maintaining clusters
 - Complete Layer isolation. No need to expose cluster to a deployment server or open vulnerable ports (22) to update servers
 - More rapid updates vs AMI rollouts and more cost effective, especially at scale (not paying for partial hours every update)
-- CodeDeploy requires every instance to compile its own code (I think) and uses long polling. Skynet uses push
 
 Getting Started:<br>
 1) You'll need to have at least one domain in your AWS account. Just the hosted zone, nothing else.<br>
